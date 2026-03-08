@@ -1,17 +1,94 @@
 \section{Threat Model}
 \label{sec:threat-model}
 
-% Adversaries:
-% 1. Malicious stakeholder — deliberately falsifies/tampers artefacts
-% 2. Sloppy stakeholder — updates without notification/consent
-% 3. Post-failure accountability — no trace when missions fail
-% 4. IP exposure — stakeholders won't share proprietary models
-%
-% Explicitly NOT covered (GIGO):
-% - System proves integrity/provenance, not correctness of source data
-%
-% Threat model scope: integrity, provenance, selective disclosure
-% Reviewers WILL ask "how is this different from signed hashes?"
-% Answer: proves meaningful properties (schema compliance, version validity, authorized provenance)
+We consider a DME ecosystem in which $n$ stakeholders $\{S_1, S_2, \ldots, S_n\}$ contribute engineering artifacts to a shared ASOT.
+Each stakeholder controls one or more artifacts and may use different toolchains (e.g., SysML modeling tools, simulation platforms, requirements management systems).
+A \emph{mission decision} $d$ is taken at time $t$ based on the set of artifact versions $\{a_1^{v_1}, a_2^{v_2}, \ldots, a_k^{v_k}\}$ present in the ASOT at that time.
+We define the following adversarial roles, security goals, and explicit scope limitations.
 
-% TODO: Draft
+\subsection{Adversaries}
+\label{sec:adversaries}
+
+\textbf{A1: Malicious Stakeholder.}
+A stakeholder $S_i$ deliberately submits a falsified artifact $a_i' \neq a_i$ or retroactively modifies a previously committed artifact to alter the decision basis.
+The adversary's goal is to influence mission outcomes or shift blame post-failure without detection.
+
+\textbf{A2: Negligent Stakeholder.}
+A stakeholder $S_j$ updates an artifact $a_j^{v} \rightarrow a_j^{v+1}$ without notifying dependent stakeholders or obtaining required approvals.
+Unlike A1, the modification is not deliberately malicious but violates the change management protocol, potentially invalidating downstream analyses that depend on $a_j^{v}$.
+
+\textbf{A3: Unauthorized Contributor.}
+An entity not authorized to contribute to artifact $a_k$ submits a version, or an authorized stakeholder uses an unapproved tool $T' \notin \mathcal{T}_{\text{approved}}$ to generate the artifact.
+This captures both external intrusion and insider misuse of unapproved toolchains.
+
+\textbf{A4: Curious Observer.}
+A stakeholder $S_m$ with legitimate access to the ASOT attempts to extract proprietary content from artifacts contributed by other stakeholders.
+In coalition environments, this represents the IP exfiltration risk that prevents open sharing.
+
+\subsection{Security Goals}
+\label{sec:security-goals}
+
+The assurance passport framework aims to provide the following properties:
+
+\begin{enumerate}
+    \item \textbf{Tamper Evidence (against A1).} Any modification to a committed artifact after time $t$ is detectable. Formally, given a commitment $c = \textsf{Commit}(a_i^{v}, t)$ anchored on-chain, any attempt to substitute $a_i' \neq a_i^{v}$ is detected with overwhelming probability.
+
+    \item \textbf{Temporal Integrity (against A1, A2).} For any decision $d$ taken at time $t$, the exact set of artifact versions $\{a_1^{v_1}, \ldots, a_k^{v_k}\}$ that constituted the ASOT at time $t$ can be reconstructed and verified. No stakeholder can retroactively claim a different version was current, as the on-chain record is immutable.
+
+    \item \textbf{Change Accountability (against A2).} Every artifact version transition $a_j^{v} \rightarrow a_j^{v+1}$ is attributable to a specific stakeholder $S_j$ with a verifiable timestamp, enabling audit trails for change management compliance.
+
+    \item \textbf{Authorized Provenance (against A3).} Each artifact version carries a verifiable attestation that it was produced by an authorized stakeholder $S_i \in \mathcal{S}_{\text{auth}}(a)$ using an approved tool $T \in \mathcal{T}_{\text{approved}}$. This is verified without revealing the artifact content.
+
+    \item \textbf{Selective Disclosure (against A4).} A stakeholder can prove that an artifact satisfies a property $P$ (e.g., schema compliance, derivation from a specific parent artifact) without revealing the artifact itself. Formally, there exists a zero-knowledge proof $\pi$ such that a verifier is convinced that $P(a_i^{v}) = \texttt{true}$ while learning nothing about $a_i^{v}$ beyond the truth of $P$.
+\end{enumerate}
+
+\subsection{Proof Predicates}
+\label{sec:proof-predicates}
+
+To distinguish the assurance passport from simple signed hashes, we define four classes of ZK proof predicates that go beyond hash-correctness.
+For each predicate, a prover generates a proof $\pi$ and a verifier checks $\textsf{ZK.Verify}(\pi) \rightarrow \{0, 1\}$; the prover's witness (the artifact content) is never revealed.
+
+\begin{enumerate}
+    \item \textbf{Schema Compliance.} The artifact conforms to a specified schema $S$:
+    \begin{equation}
+    \label{eq:schema}
+    \pi_{\text{schema}} \leftarrow \textsf{ZK.Prove}\!\left(a_i^{v} \models S\right)
+    \end{equation}
+
+    \item \textbf{Version Validity.} The artifact is a valid update of its predecessor according to update rules $R$:
+    \begin{equation}
+    \label{eq:version}
+    \pi_{\text{version}} \leftarrow \textsf{ZK.Prove}\!\left(a_i^{v+1} = R(a_i^{v}, \Delta)\right)
+    \end{equation}
+
+    \item \textbf{Authorized Origin.} The artifact was produced by an authorized stakeholder using an approved tool:
+    \begin{equation}
+    \label{eq:origin}
+    \pi_{\text{origin}} \leftarrow \textsf{ZK.Prove}\!\left(S_i \in \mathcal{S}_{\text{auth}}(a) \wedge T \in \mathcal{T}_{\text{approved}}\right)
+    \end{equation}
+
+    \item \textbf{Derivation Lineage.} The artifact was derived from a specific parent artifact using a known transformation:
+    \begin{equation}
+    \label{eq:lineage}
+    \pi_{\text{lineage}} \leftarrow \textsf{ZK.Prove}\!\left(a_j^{v'} = f_T(a_i^{v})\right)
+    \end{equation}
+\end{enumerate}
+
+These predicates are composed into an assurance passport credential, as defined in Section~\ref{sec:framework}.
+
+\subsection{Scope and Limitations}
+\label{sec:scope}
+
+\textbf{What we do not cover.}
+The assurance passport guarantees \emph{integrity}, \emph{provenance}, and \emph{selective disclosure}---it does not guarantee the \emph{correctness} of the source data.
+If a stakeholder submits a legitimately authored but technically flawed simulation model, the system will faithfully record its provenance and attest to its properties, but will not detect the engineering error.
+This ``garbage in, garbage out'' (GIGO) limitation is inherent to any integrity-focused system and is explicitly out of scope.
+
+\textbf{Trust assumptions.}
+We assume that the consortium blockchain operates under an honest-majority assumption among validator nodes (standard for IBFT/QBFT consensus), that the ZK proof system is computationally sound (no polynomial-time adversary can produce a valid proof for a false statement), and that each stakeholder's signing key is not compromised.
+Key management and revocation are orthogonal concerns addressed by standard PKI infrastructure.
+
+\textbf{Collusion bound.}
+The system tolerates up to $\lfloor (n-1)/3 \rfloor$ colluding Byzantine validators under IBFT/QBFT.
+Collusion among \emph{stakeholders} (as opposed to validators) is partially addressed: colluding stakeholders cannot forge provenance for artifacts they did not produce, but they can coordinate to submit complementary false artifacts that individually pass all proof predicates.
+Detecting semantically coordinated falsification across artifacts remains an open problem.
