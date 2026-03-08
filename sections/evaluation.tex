@@ -11,8 +11,8 @@ The evaluation addresses three questions:
 \label{sec:eval-setup}
 
 \textbf{Hardware.}
-The testbed comprises four NVIDIA Jetson Orin Nano 8~GB boards connected via Gigabit Ethernet, each running Ubuntu 20.04 (JetPack 5.1) with GoQuorum v23.4 as the blockchain client.
-Circuit compilation and trusted setup are performed offline on an Apple M2 laptop (16~GB RAM).
+The testbed comprises four NVIDIA Jetson Nano 4~GB boards connected via Gigabit Ethernet, each running Ubuntu 18.04 (JetPack 4.6) with GoQuorum v23.4 as the blockchain client.
+Circuit compilation and trusted setup are performed offline on an Apple M4 Max laptop.
 
 \textbf{Software.}
 ZK circuits are implemented in Circom 2.1 and compiled to R1CS.
@@ -31,11 +31,11 @@ Raft serves as a performance upper bound since it eliminates the multi-round Byz
 \subsection{Proof Generation Performance}
 \label{sec:eval-proof}
 
-Table~\ref{tab:proof-gen} reports the proof generation time for each predicate circuit on the Jetson Orin Nano.
+Table~\ref{tab:proof-gen} reports the proof generation time for each predicate circuit on the Jetson Nano.
 
 \begin{table}[t]
 \centering
-\caption{Proof generation time per predicate on Jetson Orin Nano (4~KB artifact, median of 30 runs).}
+\caption{Proof generation time per predicate on Jetson Nano (4~KB artifact, median of 30 runs).}
 \label{tab:proof-gen}
 \begin{tabular}{lrrr}
 \toprule
@@ -62,7 +62,7 @@ The dominant cost component is in-circuit Poseidon hashing, which scales linearl
 \begin{figure}[t]
 \centering
 \fbox{\parbox{0.9\columnwidth}{\centering\vspace{2em}\textit{Proof Generation Time vs.\ Artifact Size}\\[0.5em]X-axis: Artifact size (field elements)\\Y-axis: Time (seconds)\\Curves: Schema, Version, Origin, Lineage\vspace{2em}}}
-\caption{Proof generation time vs.\ artifact size on the Jetson Orin Nano. The authorized origin circuit is nearly constant (Merkle proof depth is fixed); the other predicates scale with artifact size.}
+\caption{Proof generation time vs.\ artifact size on the Jetson Nano. The authorized origin circuit is nearly constant (Merkle proof depth is fixed); the other predicates scale with artifact size.}
 \label{fig:proof-scaling}
 \end{figure}
 
@@ -89,7 +89,8 @@ Credential status update (revocation) & \textit{TBD} \\
 \end{table}
 
 Each Groth16 verification invokes the BN254 \texttt{ecPairing} precompile (address 0x08), which dominates the gas cost.
-Under the post-EIP-1108 gas schedule (Istanbul fork), the \texttt{ecPairing} precompile costs $34{,}000 + 45{,}000 \times k$ gas for $k$ input pairs.
+Under the post-EIP-1108 gas schedule (Istanbul fork, included in GoQuorum v23.4), the \texttt{ecPairing} precompile costs $34{,}000 + 45{,}000 \times k$ gas for $k$ input pairs.
+The actual gas consumed on the testbed will be reported when TBD values are filled; the figures below use the EIP-1108 formula as a reference.
 A standard Groth16 verification uses 4 pairing pairs (proof elements $A, B, C$ plus the public-input accumulator), costing approximately $34{,}000 + 4 \times 45{,}000 = 214{,}000$ gas, plus additional gas for \texttt{ecMul}/\texttt{ecAdd} operations during public-input accumulation.
 For the full bundle with four independent predicate verifications, the pairing cost alone is approximately $4 \times 214{,}000 \approx 856{,}000$ gas.
 As noted in Section~\ref{sec:arch-contracts}, GoQuorum operates with zero gas price; these figures represent computational metering, not economic cost.
@@ -143,14 +144,14 @@ Table~\ref{tab:comparison} compares the assurance passport system with our prior
 
 \begin{table}[t]
 \centering
-\caption{Comparison with prior work and baseline.}
+\caption{Comparison with prior work and baseline. $\dagger$\,Tx confirmation time is dominated by block time (Sepolia $\sim$12~s); verification computation itself takes milliseconds.}
 \label{tab:comparison}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Metric} & \textbf{Signed Hash} & \textbf{Prior~\cite{jagannath2025zksnark}} & \textbf{This Work} \\
 \midrule
 Proof gen. time & N/A & 233.63~s & \textit{TBD} \\
-Tx confirm. time & $<$1~s & 61.50~s & \textit{TBD} \\
+Tx confirm. time\textsuperscript{$\dagger$} & $<$1~s & 61.50~s & \textit{TBD} \\
 Proof size (per predicate) & N/A & 128~B & 128~B \\
 Total proof size & N/A & 128~B & 512~B (4 predicates) \\
 Privacy preserving & No & Partial & Yes \\
@@ -161,7 +162,7 @@ Hardware & N/A & Jetson & Jetson \\
 \end{tabular}
 \end{table}
 
-The signed hash baseline provides tamper evidence and accountability but no selective disclosure or predicate attestation---the verifier must access the full artifact.
+The signed hash baseline provides tamper evidence and accountability but no predicate attestation---the verifier must access the full artifact to check properties.
 Our prior work~\cite{jagannath2025zksnark} demonstrated single-predicate ZK verification on a public testnet; the present work extends this to four predicates, consortium deployment, and edge hardware with three consensus protocols.
 
 \subsection{Discussion of Results}
@@ -171,7 +172,7 @@ The evaluation demonstrates that the assurance passport system is feasible on ed
 Key observations:
 
 \begin{enumerate}
-    \item \textbf{Proof generation is the bottleneck.} On the Jetson Orin Nano, proof generation dominates end-to-end latency. However, proof generation is a local, asynchronous operation: it does not block the blockchain or other stakeholders, and can be performed in batch during periods of connectivity.
+    \item \textbf{Proof generation is the bottleneck.} On the Jetson Nano, proof generation dominates end-to-end latency. However, proof generation is a local, asynchronous operation: it does not block the blockchain or other stakeholders, and can be performed in batch during periods of connectivity.
 
     \item \textbf{Consensus choice matters for throughput, not latency.} For individual passport issuance, the consensus protocol has minimal impact on perceived latency (proof generation dominates). Under concurrent load, QBFT provides a practical balance of Byzantine fault tolerance and throughput.
 

@@ -10,7 +10,7 @@ The framework supports self-issued credentials with trust anchored in mathematic
 Second, we presented a portable system architecture demonstrated on a GoQuorum consortium blockchain, Groth16 zk-SNARK circuits with Poseidon hashing, and a production DME platform (Kompozition) via a non-invasive adapter pattern.
 The architecture uses a unified hash function (Poseidon) both on-chain and in-circuit, eliminating the Keccak/Poseidon equivalence problem, and localizes vendor-specific logic to the serialization layer.
 
-Third, we deployed and evaluated a proof-of-concept on edge hardware (four NVIDIA Jetson Orin Nano boards), benchmarking proof generation, on-chain verification, and throughput across two BFT consensus protocols (IBFT, QBFT) and a CFT baseline (Raft).
+Third, we deployed and evaluated a proof-of-concept on edge hardware (four NVIDIA Jetson Nano boards), benchmarking proof generation, on-chain verification, and throughput across two BFT consensus protocols (IBFT, QBFT) and a CFT baseline (Raft).
 The evaluation demonstrates that ZK-based artifact attestation is feasible on resource-constrained hardware, with proof generation as the performance bottleneck and on-chain verification remaining lightweight via BN254 pairing precompiles.
 
 The assurance passport addresses a gap at the intersection of blockchain-based engineering trust, zero-knowledge provenance, and verifiable credentials: no prior work combines these three elements for engineering artifact attestation.

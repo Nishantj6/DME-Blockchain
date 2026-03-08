@@ -71,6 +71,7 @@ The credential is self-issued: the stakeholder who produced the artifact is the 
 Self-issuance is justified because the trust anchor is not the issuer's identity but the combination of (a)~the ZK proof's mathematical soundness, (b)~the on-chain commitment's immutability, and (c)~the authorized origin predicate $\pi_{\text{origin}}$, which cryptographically binds the proof to a consortium-permissioned Ethereum account.
 Specifically, the commitment transaction in Phase~1 is signed by $S_i$'s consortium-permissioned account, and the origin predicate proves that this account belongs to $\mathcal{S}_{\text{auth}}(a)$; together, these bind the issuer identity to the proof without relying on the VC metadata alone.
 Note that if $\pi_{\text{origin}}$ is omitted from the passport's predicate set, the identity binding relies solely on the permissioned blockchain's access control---the credential's \texttt{issuer} field is not independently cryptographically bound.
+Consequently, $\pi_{\text{origin}}$ is required for Security Goal~4 (Authorized Provenance) to hold; a passport without it provides tamper evidence and structural attestation but not cryptographic provenance.
 
 In defense acquisition contexts, self-issued passports attest to structural properties (schema compliance, provenance, lineage) but do not replace third-party acceptance.
 A designated authority (e.g., a program management office or IV\&V agent) may issue an \emph{endorsement credential}---a separate VC that references the self-issued passport and attests to programmatic acceptance.
@@ -115,7 +116,7 @@ A smart contract maintains a mapping from artifact identifiers to their commitme
 Each entry records the commitment $c_i^{v} = H(a_i^{v})$, the contributing stakeholder $S_i$, the block timestamp $t$, and the anchoring transaction hash.
 The registry is append-only: new versions can be added but existing entries cannot be modified, providing tamper evidence (Security Goal~1) and temporal integrity (Security Goal~2).
 Write access is enforced by the smart contract: only a stakeholder $S_i \in \mathcal{S}_{\text{auth}}(a)$ (authenticated via their consortium-permissioned Ethereum account) can commit a new version for artifact $a_i$.
-This prevents front-running attacks where a malicious stakeholder registers a commitment for an artifact they do not own.
+This prevents unauthorized commitment, where a malicious stakeholder registers a commitment for an artifact they do not own.
 
 \textbf{2. Verification Key Registry.}
 The verification keys $\mathsf{vk}_k$ for each proof predicate are stored on-chain, ensuring that all verifiers use the same keys derived from the trusted setup.
@@ -147,7 +148,7 @@ The proof bundle $\boldsymbol{\pi}$ in the passport's proof field is the concate
 
 Each component proof is independently verifiable: a verifier can check any subset of predicates without processing the full bundle.
 This design supports incremental attestation---a stakeholder can issue an initial passport with only $\pi_{\text{schema}}$ and $\pi_{\text{origin}}$, then update it with $\pi_{\text{version}}$ when a new version is committed.
-Note that this is concatenation-based bundling, not recursive proof composition (e.g., SnarkPack or Halo-style folding); verification cost scales linearly with the number of predicates ($4 \times 3 = 12$ pairing operations for a full bundle).
+Note that this is concatenation-based bundling, not recursive proof composition (e.g., SnarkPack or Halo-style folding); verification cost scales linearly with the number of predicates ($4 \times 4 = 16$ pairing input pairs for a full bundle, passed to 4 separate \texttt{ecPairing} precompile calls).
 
 The total proof size for a full passport with all four predicates is $4 \times 128 = 512$ bytes compressed (four Groth16 proofs on BN254), or 1{,}024 bytes uncompressed as used by the EVM pairing precompiles.
 Either representation is suitable for transmission in bandwidth-constrained DDIL environments.
@@ -156,6 +157,7 @@ Either representation is suitable for transmission in bandwidth-constrained DDIL
 All four predicates share the artifact commitment $c_i^{v} = H(a_i^{v})$ as a common public input.
 The verifier must confirm that the $c_i^{v}$ value is identical across all sub-proofs in the bundle (verification step~2 in Section~\ref{sec:fw-lifecycle}) and matches the on-chain registry.
 An adversary cannot mix proofs from different artifacts because producing a valid proof for commitment $c_j^{v'} \neq c_i^{v}$ requires knowledge of the artifact $a_j^{v'}$ corresponding to $c_j^{v'}$; this follows from the \emph{knowledge-soundness} (extractability) of Groth16 under the Knowledge-of-Exponent assumption, which guarantees that a valid prover must ``know'' the witness.
+This binding is enforced by the verifier contract (Section~\ref{sec:arch-contracts}), which rejects bundles with inconsistent public inputs; it is a protocol-level check, not a cryptographic property of the proof system itself.
 
 \subsection{Configuration Baseline Attestation}
 \label{sec:fw-baseline}
@@ -182,7 +184,8 @@ We discuss this extension in Section~\ref{sec:discussion}.
 \subsection{Security Analysis}
 \label{sec:fw-security}
 
-We now argue that the assurance passport framework satisfies the security goals defined in Section~\ref{sec:security-goals}.
+We now present informal security arguments that the assurance passport framework satisfies the security goals defined in Section~\ref{sec:security-goals}.
+These are reduction-style arguments to standard cryptographic assumptions; formal proofs are deferred to an extended version.
 
 \textbf{Tamper Evidence (Goal~1).}
 An adversary attempting to substitute $a_i' \neq a_i^{v}$ after commitment must either (a)~find a collision $H(a_i') = H(a_i^{v})$, which contradicts the collision resistance of $H$, or (b)~modify the on-chain registry, which requires corrupting more than $\lfloor (n-1)/3 \rfloor$ validators (contradicting the honest-supermajority assumption).
@@ -200,6 +203,6 @@ The version validity predicate ($\pi_{\text{version}}$) further attests that the
 The authorized origin predicate ($\pi_{\text{origin}}$) proves set membership ($S_i \in \mathcal{S}_{\text{auth}}(a)$ and $T \in \mathcal{T}_{\text{approved}}$) via Merkle inclusion proofs without revealing the stakeholder's credentials or tool identity to the verifier.
 Soundness of the zk-SNARK ensures that only a prover with valid credentials can produce a valid proof.
 
-\textbf{Selective Disclosure (Goal~5).}
+\textbf{Predicate Attestation (Goal~5).}
 By construction, the verifier receives only the public inputs $(c_i^{v}, S, \mathsf{root}_S, \mathsf{root}_T, \ldots)$ and the proofs $\boldsymbol{\pi}$.
 The zero-knowledge property of Groth16 guarantees that no information about the witness (artifact content $a_i^{v}$, stakeholder credential, tool identity, Merkle paths) is leaked beyond what is implied by the truth of the predicates.

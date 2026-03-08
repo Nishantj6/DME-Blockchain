@@ -45,7 +45,8 @@ Formally, a zk-SNARK for an NP relation $\mathcal{R}$ consists of three algorith
 
 A zk-SNARK satisfies three properties: \emph{completeness} (an honest prover always convinces the verifier), \emph{soundness} (no polynomial-time adversary can produce a valid proof for a false statement, except with negligible probability), and \emph{zero-knowledge} (the proof reveals nothing about the witness beyond the truth of the statement).
 
-We use the Groth16 construction~\cite{groth2016size}, which produces constant-size proofs (2 $\mathbb{G}_1$ + 1 $\mathbb{G}_2$ elements, approximately 128 bytes compressed on BN254, or 256 bytes uncompressed) and enables verification in constant time (3 pairing operations).
+We use the Groth16 construction~\cite{groth2016size}, which produces constant-size proofs (2 $\mathbb{G}_1$ + 1 $\mathbb{G}_2$ elements, approximately 128 bytes compressed on BN254, or 256 bytes uncompressed) and enables verification via a single multi-pairing check over 4 input pairs.
+BN254 provides approximately 100--110 bits of security following advances in the number field sieve for pairing-friendly curves; this is sufficient for the proof-of-concept, and production deployments requiring 128-bit security should consider BLS12-381 (with correspondingly larger proof sizes of approximately 192 bytes compressed).
 Groth16 requires a \emph{trusted setup} ceremony that generates a structured reference string (SRS); if the toxic waste from this ceremony is not properly destroyed, soundness can be violated.
 We discuss alternatives to trusted setup (e.g., PLONK, STARKs) in Section~\ref{sec:discussion}.
 
@@ -95,7 +96,8 @@ Examples include Open Badges 3.0 for educational achievements~\cite{open_badges3
 The assurance passport defined in Section~\ref{sec:framework} is a VC profile for engineering artifact attestation.
 
 Credentials are issued by an \emph{issuer} (in our case, the stakeholder's ZK proof system), held by a \emph{holder} (the stakeholder), and verified by a \emph{verifier} (any ASOT participant or auditor) without contacting the issuer.
-When combined with zero-knowledge proofs, the credential's proof field enables \emph{selective disclosure}: the holder can prove specific claims without revealing the full credential or underlying data.
+When combined with zero-knowledge proofs, the credential's proof field enables \emph{predicate attestation}: the holder can prove that specific properties hold without revealing the full credential or underlying data.
+(This is distinct from traditional VC selective disclosure, which reveals a subset of claim values; predicate attestation reveals nothing beyond the truth of the predicate.)
 
 \subsection{Digital Mission Engineering}
 \label{sec:prelim-dme}

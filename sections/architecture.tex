@@ -31,7 +31,7 @@ Credential Layer $\xleftarrow{\text{anchor}}$ Blockchain (GoQuorum)
 \subsection{Hardware Deployment}
 \label{sec:arch-hardware}
 
-The proof-of-concept is deployed on a network of four NVIDIA Jetson Orin Nano boards, each serving as a consortium validator node and proof generation endpoint.
+The proof-of-concept is deployed on a network of four NVIDIA Jetson Nano boards, each serving as a consortium validator node and proof generation endpoint.
 This configuration simulates a four-stakeholder DME consortium where each stakeholder operates an edge node capable of:
 \begin{itemize}
     \item Running a GoQuorum validator (participating in consensus).
@@ -39,11 +39,11 @@ This configuration simulates a four-stakeholder DME consortium where each stakeh
     \item Submitting commitment transactions and verifying proofs on-chain.
 \end{itemize}
 
-The Jetson Orin Nano 8~GB Developer Kit (ARM Cortex-A78AE CPU, 1024-core Ampere GPU) represents a realistic edge deployment for DDIL environments where cloud connectivity cannot be assumed.
+The Jetson Nano Developer Kit (quad-core ARM Cortex-A57 CPU, 128-core Maxwell GPU, 4~GB LPDDR4) represents a realistic edge deployment for DDIL environments where cloud connectivity cannot be assumed.
 The GPU is available for future acceleration but is not used for proof generation in the current implementation, which relies on CPU-based arithmetic.
 With $n=4$ validators, IBFT and QBFT require 3 of 4 nodes online for liveness, tolerating at most one Byzantine fault.
 This tight margin is a known constraint for DDIL scenarios with intermittent connectivity; we discuss mitigation strategies (e.g., increasing the validator set, queuing commitments during partitions) in Section~\ref{sec:discussion}.
-A separate development machine (Apple M-series laptop) is used for circuit compilation, trusted setup, and key generation---operations performed once during system initialization, not during normal operation.
+A separate development machine (Apple M4 Max laptop) is used for circuit compilation, trusted setup, and key generation---operations performed once during system initialization, not during normal operation.
 
 \subsection{ZK Circuit Design}
 \label{sec:arch-zk}
@@ -57,6 +57,8 @@ Keccak-256 requires approximately 150{,}000 R1CS constraints per hash invocation
 We adopt a \emph{two-hash architecture}:
 \begin{itemize}
     \item \textbf{In-circuit:} We use Poseidon~\cite{poseidon_hash}, a SNARK-friendly hash function designed for efficient arithmetization, requiring approximately 300 R1CS constraints per compression call (arity-4, $\alpha=5$, 8 full and 57 partial rounds) on BN254.
+    This parameterization targets 128-bit collision resistance with a safety margin of approximately $2\times$ over the best known algebraic attacks.
+    The sponge operates with rate $r=4$ and capacity $c=1$ field elements.
     \item \textbf{On-chain:} Artifact commitments stored in the registry use Poseidon as well, computed via a Poseidon library contract deployed on the GoQuorum network. This avoids the need to prove equivalence between a Keccak-256 digest (on-chain) and a Poseidon digest (in-circuit).
 \end{itemize}
 By deploying Poseidon as an on-chain Solidity library on the consortium chain (feasible because GoQuorum is permissioned and gas pricing is not a constraint; see below), we ensure that $H$ is the same function both on-chain and in-circuit, preserving the commitment binding property from Section~\ref{sec:fw-bundling}.

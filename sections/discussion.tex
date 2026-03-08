@@ -28,11 +28,24 @@ The derivation lineage predicate (Section~\ref{sec:proof-predicates}) requires t
 Many real-world DME workflows involve non-deterministic steps (e.g., stochastic simulations, human-in-the-loop design refinement).
 Extending the lineage predicate to probabilistic or approximate transformations is an open research problem.
 
+\textbf{Serialization determinism.}
+The commitment chain depends on deterministic serialization: the DME platform exports an artifact, the adapter serializes it to canonical JSON (RFC~8785), field elements are packed, and Poseidon hashes are computed.
+RFC~8785 canonicalizes JSON key order and number/string representation, but does \emph{not} canonicalize the order of elements within JSON arrays.
+SysML models contain semantically unordered collections (e.g., owned elements of a package) that are serialized as JSON arrays.
+If the platform API returns these in non-deterministic order across calls, the canonical JSON diverges and the commitment changes.
+The adapter must therefore impose a canonical element ordering within arrays (e.g., lexicographic by element identifier) beyond what RFC~8785 provides.
+Cross-implementation consistency of the Poseidon hash (between the Circom in-circuit implementation and the Solidity on-chain library) must also be validated via shared test vectors to ensure that on-chain verification accepts in-circuit commitments.
+
+\textbf{API projection scope.}
+The commitment covers the artifact content as exported by the DME platform's REST API, which may be a projection of the internal model state (omitting tool-specific metadata, diagram layout, or internal identifiers).
+The assurance passport therefore attests to properties of the API-visible artifact, not necessarily the complete internal model.
+For the proof-of-concept, this distinction is acceptable; production deployments should document which model facets the API export captures.
+
 \subsection{Design Trade-Offs}
 \label{sec:discussion-tradeoffs}
 
 \textbf{Groth16 and trusted setup.}
-We selected Groth16 for its constant-size proofs (128~bytes compressed on BN254), constant-time verification (3 pairing operations), and mature tooling (Circom, SnarkJS).
+We selected Groth16 for its constant-size proofs (128~bytes compressed on BN254), constant-time verification (a single multi-pairing check over 4 input pairs), and mature tooling (Circom, SnarkJS).
 The principal drawback is the per-circuit trusted setup: each predicate circuit requires a separate setup ceremony, and a compromised common reference string breaks soundness for all proofs generated with that circuit.
 For production deployments, we recommend a multi-party computation (MPC) ceremony with at least one party per consortium stakeholder, following the protocol used in Zcash Sapling.
 Alternatively, universal-setup systems such as PLONK or transparent systems such as STARKs eliminate the per-circuit trusted setup at the cost of larger proofs (PLONK: $\sim$400--800~bytes; STARKs: $\sim$40--200~KB).
@@ -41,7 +54,7 @@ For bandwidth-constrained DDIL environments, Groth16's proof compactness remains
 \textbf{GoQuorum deprecation.}
 GoQuorum was selected for the proof-of-concept due to its mature Raft support, full EVM compatibility, and existing deployment on our edge hardware testbed.
 ConsenSys has since shifted focus to Hyperledger Besu as the primary enterprise Ethereum client.
-However, the assurance passport framework is not GoQuorum-specific: the smart contracts (Solidity), ZK verification (BN254 precompiles), and VC credential format are EVM-standard and portable to Besu, Polygon Edge, or any Ethereum-compatible consortium chain.
+However, the assurance passport framework is not GoQuorum-specific: the smart contracts (Solidity), ZK verification (BN254 precompiles), and VC format are EVM-standard and portable to Besu, Polygon Edge, or any Ethereum-compatible consortium chain.
 Migration requires redeploying contracts and reconfiguring consensus; no architectural changes are needed.
 
 \textbf{Poseidon vs.\ Keccak.}
@@ -59,7 +72,7 @@ This two-layer separation (cryptographic assurance + governance approval) mirror
 \subsection{DDIL Operational Considerations}
 \label{sec:discussion-ddil}
 
-Deploying the assurance passport in DDIL environments raises several operational concerns beyond performance.
+Deploying the assurance passport in DDIL environments raises three operational concerns beyond performance.
 
 \textbf{Consensus liveness.}
 With $n=4$ validators under IBFT or QBFT, the system requires 3 of 4 nodes online for liveness.
@@ -82,17 +95,35 @@ The BFT partition (with $\geq 3$ of 4 nodes) continues to finalize blocks; the m
 Commitments made on the majority partition are authoritative.
 A merge protocol for reconciling divergent state after partition healing is out of scope but is a relevant concern for extended DDIL operations.
 
+\textbf{Resource contention.}
+Each Jetson Nano serves simultaneously as a consortium validator and a proof generation endpoint.
+Proof generation is CPU-intensive and can take minutes for a full bundle; during this period, the validator process must continue to participate in consensus rounds.
+With $n=4$ and $f=1$, resource starvation of a single validator could threaten liveness.
+OS-level resource isolation (e.g., cgroups, CPU pinning) should be used in production deployments to ensure the validator process is not preempted by the prover.
+Our benchmarks measure proof generation and consensus performance separately; concurrent performance under load is a topic for future evaluation.
+
+\textbf{Commitment-proof temporal gap.}
+The assurance passport lifecycle commits the artifact hash on-chain (Phase~1) before proof generation begins (Phase~2).
+Since proof generation takes minutes on edge hardware, a temporal window exists during which the commitment is anchored but no proofs are available.
+The passport is not valid until all proofs are verified on-chain; verifiers must check both the commitment timestamp and the proof verification timestamp before accepting a passport.
+
 \subsection{Implications for Coalition DME}
 \label{sec:discussion-coalition}
 
 The assurance passport framework has particular relevance for coalition DME environments, where multiple organizations (potentially from different nations) contribute artifacts to a shared ASOT under strict IP protection requirements.
-The selective disclosure property (Security Goal~5) enables a stakeholder to prove that an artifact satisfies required properties---schema compliance, authorized provenance, version validity---without revealing the artifact content to coalition partners.
+The predicate attestation property (Security Goal~5) enables a stakeholder to prove that an artifact satisfies required properties---schema compliance, authorized provenance, version validity---without revealing the artifact content to coalition partners.
 This addresses a fundamental barrier to MBSE artifact sharing in defense contexts: the tension between transparency for trust and confidentiality for IP protection.
 
 The framework does not, however, address semantic interoperability across coalition toolchains.
 Each coalition partner may use different SysML profiles, metamodels, or domain-specific extensions.
 The canonical JSON serialization (Section~\ref{sec:arch-dme}) must be defined by consortium agreement.
 Cross-platform commitment interoperability---ensuring that the same logical model produces the same commitment regardless of source platform---requires a shared canonical metamodel specification, a prerequisite for multi-vendor coalition deployments.
+Achieving consensus on a canonical metamodel across competing defense contractors is a significant organizational challenge; ongoing SysML~v2 API standardization efforts may provide a foundation for future interoperability.
+
+The framework operates within a single classification domain; cross-classification sharing (e.g., CUI to Secret) requires cross-domain solutions that are orthogonal to this work.
+Similarly, ITAR/EAR export control constraints and DFARS data rights (252.227-7013/7014) shape what can be shared in coalition environments; the assurance passport addresses the cryptographic layer but does not replace contractual or regulatory governance.
+
+The assurance passport can be viewed as a cryptographic layer over the \emph{digital thread}---the DoD's concept for end-to-end traceability of engineering data across the acquisition lifecycle---providing verifiable provenance at each link in the data chain.
 
 \subsection{Future Work}
 \label{sec:discussion-future}

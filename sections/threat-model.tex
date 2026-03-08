@@ -39,7 +39,7 @@ The assurance passport framework aims to provide the following properties:
 
     \item \textbf{Authorized Provenance (against A3).} Each artifact version carries a verifiable attestation that it was produced by an authorized stakeholder $S_i \in \mathcal{S}_{\text{auth}}(a)$ using an approved tool $T \in \mathcal{T}_{\text{approved}}$. This is verified without revealing the artifact content.
 
-    \item \textbf{Selective Disclosure (against A4).} A stakeholder can prove that an artifact satisfies a property $P$ (e.g., schema compliance, derivation from a specific parent artifact) without revealing the artifact itself. Formally, there exists a zero-knowledge proof $\pi$ such that a verifier is convinced that $P(a_i^{v}) = \texttt{true}$ while learning nothing about $a_i^{v}$ beyond the truth of $P$.
+    \item \textbf{Predicate Attestation (against A4).} A stakeholder can prove that an artifact satisfies a property $P$ (e.g., schema compliance, derivation from a specific parent artifact) without revealing the artifact itself. Formally, there exists a zero-knowledge proof $\pi$ such that a verifier is convinced that $P(a_i^{v}) = \texttt{true}$ while learning nothing about $a_i^{v}$ beyond the truth of $P$ and the public commitment $c_i^{v} = H(a_i^{v})$. Note that the commitment is binding but not hiding (see Section~\ref{sec:discussion-limitations}); an adversary who can guess the artifact content can verify the guess against the on-chain commitment.
 \end{enumerate}
 
 \subsection{Proof Predicates}
@@ -50,7 +50,7 @@ Each predicate is realized as a zk-SNARK circuit with a public input $x$ (visibl
 Given a common reference string from a trusted setup ceremony (see Section~\ref{sec:scope} for trust implications), a prover generates $\pi \leftarrow \textsf{Prove}(\mathsf{pk}, x, w)$ and a verifier checks $\textsf{Verify}(\mathsf{vk}, x, \pi) \rightarrow \{0, 1\}$.
 
 \begin{enumerate}
-    \item \textbf{Schema Compliance.} The artifact conforms to a specified schema $S$.
+    \item \textbf{Schema Compliance.} The artifact conforms to a restricted structural schema $S$, encompassing attribute presence checks, type assertions, and bounded-depth graph traversals over the serialized representation (see Section~\ref{sec:arch-zk} for the precise schema compliance language; full XSD or JSON Schema validation is not arithmetized).
     Public input: on-chain commitment $c_i^{v} = H(a_i^{v})$ and schema identifier $S$. Witness: artifact content $a_i^{v}$.
     \begin{equation}
     \label{eq:schema}
@@ -58,6 +58,7 @@ Given a common reference string from a trusted setup ceremony (see Section~\ref{
     \end{equation}
 
     \item \textbf{Version Validity.} The artifact is a valid update of its predecessor according to update rules $R$.
+    $R$ is a consortium-configurable set of structural constraints---for example, no deletion of required elements, monotonic version counter, and preservation of interface signatures.
     Public input: commitments $c_i^{v}, c_i^{v+1}$. Witness: both artifact versions and the delta $\Delta$.
     \begin{equation}
     \label{eq:version}
@@ -85,12 +86,12 @@ These predicates are bundled into an assurance passport credential, as defined i
 \label{sec:scope}
 
 \textbf{What we do not cover.}
-The assurance passport guarantees \emph{integrity}, \emph{provenance}, and \emph{selective disclosure}---it does not guarantee the \emph{correctness} of the source data.
+The assurance passport guarantees \emph{integrity}, \emph{provenance}, and \emph{predicate attestation}---it does not guarantee the \emph{correctness} of the source data.
 If a stakeholder submits a legitimately authored but technically flawed simulation model, the system will faithfully record its provenance and attest to its properties, but will not detect the engineering error.
 This ``garbage in, garbage out'' (GIGO) limitation is inherent to any integrity-focused system and is explicitly out of scope.
 
 \textbf{Trust assumptions.}
-We assume that the consortium blockchain operates under an honest-supermajority assumption among validator nodes (i.e., fewer than one-third are Byzantine, as required by IBFT/QBFT consensus), that the ZK proof system is knowledge-sound under the Knowledge-of-Exponent assumption (standard for Groth16), that the trusted setup ceremony was performed correctly (i.e., toxic waste was destroyed), and that each stakeholder's signing key is not compromised.
+We assume that (1)~the consortium blockchain operates under an honest-supermajority assumption among validator nodes (i.e., fewer than one-third are Byzantine, as required by IBFT/QBFT consensus), (2)~the ZK proof system is knowledge-sound under the Knowledge-of-Exponent assumption (KEA), which is non-falsifiable but standard for all deployed pairing-based SNARKs, (3)~the trusted setup ceremony was performed correctly (i.e., toxic waste was destroyed), (4)~each stakeholder's signing key is not compromised, and (5)~the ZK circuit implementations correctly encode the intended proof predicates (a buggy circuit could produce valid proofs for non-compliant artifacts; formal circuit verification is discussed in Section~\ref{sec:discussion-future}).
 In a multi-stakeholder consortium, the trusted setup is a non-trivial trust point: a compromised common reference string would break soundness for all proof predicates.
 We recommend a multi-party computation (MPC) ceremony, as used in Zcash and other deployed systems, to distribute trust across participants.
 Key management and revocation are orthogonal concerns addressed by standard PKI infrastructure.

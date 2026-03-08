@@ -8,7 +8,7 @@ Table~\ref{tab:related-work} summarizes how existing approaches compare to the a
 \label{sec:rw-blockchain-eng}
 
 The application of blockchain to systems engineering has progressed from conceptual proposals to funded prototypes.
-Kuhn et al.~\cite{kuhn2017digital_twin_blockchain} were among the first to propose blockchain for end-to-end (E/E) traceability in the context of digital twins and MBSE.
+Kuhn et al.~\cite{kuhn2017digital_twin_blockchain} were among the first to propose blockchain for traceability in the context of digital twins and MBSE, focusing on electrical/electronic (E/E) architecture artifacts.
 Yue, Guerra, and Wagner~\cite{yue2021blockchain_mbse} conducted a pilot blockchain experiment on an aerospace MBSE project using Hyperledger Fabric, identifying governance complexity, compliance requirements, and privacy rules as key challenges for consortium deployments.
 In a follow-up study, Yue and Guerra~\cite{yue2023confidentiality} directly addressed confidentiality and data integrity in consortium blockchain for MBSE, proposing access control mechanisms to protect intellectual property between participating organizations.
 This work is the closest to ours on the blockchain--engineering axis; however, their approach relies on permissioned access control rather than cryptographic privacy, meaning that authorized participants still have full visibility into shared data.
@@ -20,7 +20,10 @@ Harz and Bader~\cite{harz2020permissioned} provided a systematic analysis of per
 On the industry side, SIMBA Chain has deployed blockchain infrastructure under U.S. Department of Defense contracts, including the ALAMEDA project (a ``single source of truth'' on distributed ledger for the U.S. Navy and Defense Logistics Agency) and the BASECAMP project for additive manufacturing traceability with the U.S. Air Force~\cite{simba_chain}.
 These represent the largest real-world deployments of blockchain for defense engineering, but they focus on physical supply chain integrity rather than model-level provenance, and do not incorporate zero-knowledge proofs.
 
-In terms of consensus performance, Wells et al.~\cite{wells2023hotstuff_goquorum} benchmarked IBFT, QBFT, and Basic HotStuff in private GoQuorum networks under varying network sizes and conditions, finding that Basic HotStuff outperforms IBFT and QBFT under low-bandwidth conditions.
+Beyond blockchain-based approaches, the open-source OpenMBEE platform (developed by JPL/NASA) provides version-controlled ASOT capabilities for MBSE, and the OSLC (Open Services for Lifecycle Collaboration) standard enables cross-tool integration.
+These solutions address governance and interoperability but lack cryptographic tamper evidence or privacy-preserving verification.
+
+In terms of consensus performance, Wells et al.~\cite{wells2023hotstuff_goquorum} benchmarked IBFT, QBFT, and Basic HotStuff in private GoQuorum networks under varying network sizes and conditions, finding that Basic HotStuff outperformed IBFT and QBFT under low-bandwidth conditions.
 However, their evaluation did not include ZK proof verification overhead, leaving open the question of how cryptographic computation interacts with consensus on resource-constrained nodes---a gap our evaluation addresses.
 
 \subsection{Zero-Knowledge Proofs for Provenance and Privacy}
@@ -80,4 +83,9 @@ Blockchain-based engineering trust systems (Yue \& Guerra, Lu et al., SIMBA Chai
 ZK systems on constrained hardware (ZPiE) lack blockchain integration.
 ZK--blockchain systems (zk-IoT, our prior work) do not target engineering artifacts.
 VC profiles (UNTP, EU Battery Passport) exist for sustainability and product compliance but not for engineering assurance.
-The assurance passport is, to the best of our knowledge, the first framework to unify consortium blockchain, zero-knowledge proofs, engineering artifact provenance, edge deployment, and a W3C-aligned VC profile.
+The assurance passport is the first framework, to our knowledge, to unify consortium blockchain, zero-knowledge proofs, engineering artifact provenance, edge deployment, and a W3C-aligned VC profile.
+
+A natural question is whether ZK proofs add meaningful value over simple signed hashes stored on-chain.
+Signed hashes prove that a known party committed to specific content, but require the verifier to access the full artifact to check any property.
+ZK proofs enable \emph{property verification without content disclosure}: a verifier can confirm schema compliance, version validity, authorized origin, or derivation lineage without seeing the artifact itself.
+This distinction is critical in coalition environments where IP protection prevents full data sharing.
