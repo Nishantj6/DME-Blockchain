@@ -1,13 +1,83 @@
 \section{Related Work}
 \label{sec:related-work}
 
-% Three pillars:
-% 1. Blockchain for ASOT / engineering trust (SIMBA Chain, Lu et al. 2020/2026)
-% 2. ZK proofs for provenance / supply chain (ZPiE, zkSNARK verification)
-% 3. DME trust frameworks and digital engineering standards
+We organize related work along three axes: blockchain for engineering trust (Section~\ref{sec:rw-blockchain-eng}), zero-knowledge proofs for provenance and privacy (Section~\ref{sec:rw-zk-provenance}), and verifiable credential profiles for assurance (Section~\ref{sec:rw-vc-profiles}).
+Table~\ref{tab:related-work} summarizes how existing approaches compare to the assurance passport.
 
-% Must cite: SIMBA Chain, Lu et al. (arXiv:2005.05415 / ScienceDirect 2026)
-% Must cite: arXiv:2504.04794 (our prior work — differentiate clearly)
-% Position gap: no ZK+blockchain for engineering artefact provenance
+\subsection{Blockchain for Engineering Trust}
+\label{sec:rw-blockchain-eng}
 
-% TODO: Draft (populate from /lit-review results)
+The application of blockchain to systems engineering has progressed from conceptual proposals to funded prototypes.
+Kuhn et al.~\cite{kuhn2017digital_twin_blockchain} were among the first to propose blockchain for electrical/electronic (E/E) traceability in the context of digital twins and MBSE.
+Yue, Guerra, and Wagner~\cite{yue2021blockchain_mbse} conducted a pilot blockchain experiment on an aerospace MBSE project using Hyperledger Fabric, identifying governance complexity, compliance requirements, and privacy rules as key challenges for consortium deployments.
+In a follow-up study, Yue and Guerra~\cite{yue2023confidentiality} directly addressed confidentiality and data integrity in consortium blockchain for MBSE, proposing access control mechanisms to protect intellectual property between participating organizations.
+This work is the closest to ours on the blockchain--engineering axis; however, their approach relies on permissioned access control rather than cryptographic privacy, meaning that authorized participants still have full visibility into shared data.
+
+Lu et al.~\cite{lu2020decentralized} proposed a decentralized marketplace for MBSE artifacts using distributed ledger technology, enabling cross-organizational exchange of engineering models.
+Their architecture addresses decentralization but does not provide mechanisms for privacy-preserving verification---stakeholders must trust the marketplace with full artifact content.
+Harz and Bader~\cite{harz2020permissioned} provided a systematic analysis of permissioned blockchains in the systems engineering lifecycle, arguing that consortium arrangements are most suitable for the SE context due to governance and compliance requirements.
+
+On the industry side, SIMBA Chain has deployed blockchain infrastructure under U.S. Department of Defense contracts, including the ALAMEDA project (a ``single source of truth'' on distributed ledger for the U.S. Navy and Defense Logistics Agency) and the BASECAMP project for additive manufacturing traceability with the U.S. Air Force~\cite{simba_chain}.
+These represent the largest real-world deployments of blockchain for defense engineering, but they focus on physical supply chain integrity rather than model-level provenance, and do not incorporate zero-knowledge proofs.
+
+In terms of consensus performance, Wells et al.~\cite{wells2023hotstuff_goquorum} benchmarked IBFT, QBFT, and Basic HotStuff in private GoQuorum networks under varying network sizes and conditions, finding that Basic HotStuff outperforms IBFT and QBFT under low-bandwidth conditions.
+However, their evaluation did not include ZK proof verification overhead, leaving open the question of how cryptographic computation interacts with consensus on resource-constrained nodes---a gap our evaluation addresses.
+
+\subsection{Zero-Knowledge Proofs for Provenance and Privacy}
+\label{sec:rw-zk-provenance}
+
+Zero-knowledge proof systems have seen rapid adoption for privacy-preserving verification across domains.
+Groth~\cite{groth2016size} established the foundational zk-SNARK construction (Groth16) that remains widely deployed due to its constant-size proofs and fast verification.
+In supply chain contexts, ZKPs have been applied to verify trade compliance, document authenticity, and ethical sourcing claims without disclosing confidential business data~\cite{zkp_supply_chain2024, maritime_zkp2025}.
+
+Two works are particularly relevant to our contribution.
+First, Salleras and Daza~\cite{salleras2021zpie} developed ZPiE, a C library for executing zk-SNARK proofs on embedded systems, demonstrating Groth16 proof generation on a Raspberry Pi Zero W (700~MHz ARM).
+Their results establish that ZK computation on resource-constrained hardware is feasible, though they did not integrate with a blockchain layer or target engineering workloads.
+Second, Ramezan and Meamari~\cite{ramezan2024zkiot} proposed zk-IoT, a framework combining ZKPs with blockchain to ensure firmware integrity on IoT devices.
+zk-IoT is the closest technical analog to our work on the ZK--blockchain--device axis, but it operates on firmware binary blobs rather than structured engineering artifacts, and addresses device authentication rather than artifact provenance.
+
+Our prior work~\cite{jagannath2025zksnark} established the feasibility of on-chain zk-SNARK verification for AI model marketplaces, achieving 233.63\,s proof generation and 61.50\,s verification on the Sepolia public testnet.
+The present work extends this in three dimensions: from AI models to engineering artifacts (requiring richer proof predicates), from public testnet to consortium blockchain (reflecting DME trust models), and from cloud to edge hardware (addressing DDIL environments).
+
+\subsection{Verifiable Credential Profiles for Assurance}
+\label{sec:rw-vc-profiles}
+
+The W3C Verifiable Credentials Data Model v2.0~\cite{w3c_vc} provides a standard for expressing and verifying digital credentials.
+Domain-specific VC profiles have emerged for several sectors: Open Badges 3.0~\cite{open_badges3} aligns with W3C VCs for educational achievement credentials, and the UN Transparency Protocol (UNTP)~\cite{untp_dpp} defines VC-based Digital Product Passports for supply chain sustainability.
+The EU Battery Regulation~\cite{eu_battery_passport} will mandate VC-based product passports with conformity data and tiered stakeholder access from 2027---the first legally mandated sector-specific VC profile at scale.
+Architectural guidance for implementing Digital Product Passports using decentralized identifiers (DIDs) and VCs with selective disclosure has been provided by recent work~\cite{dpp_did_vc2024}.
+
+Despite this momentum, no VC profile exists for engineering assurance or DME artifacts.
+The assurance passport proposed in this paper fills this gap by defining a VC schema for engineering artifact attestation, analogous to how Open Badges serves education and UNTP serves sustainability.
+
+\subsection{Summary and Positioning}
+\label{sec:rw-summary}
+
+\begin{table*}[t]
+\centering
+\caption{Comparison of related approaches. \checkmark = fully addressed, $\sim$ = partially addressed, --- = not addressed.}
+\label{tab:related-work}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Approach} & \textbf{Blockchain} & \textbf{ZK Privacy} & \textbf{Engineering} & \textbf{Edge HW} & \textbf{VC Profile} \\
+\midrule
+Yue \& Guerra~\cite{yue2021blockchain_mbse, yue2023confidentiality} & \checkmark & --- & \checkmark & --- & --- \\
+Lu et al.~\cite{lu2020decentralized} & \checkmark & --- & \checkmark & --- & --- \\
+SIMBA Chain~\cite{simba_chain} & \checkmark & --- & $\sim$ & --- & --- \\
+ZPiE~\cite{salleras2021zpie} & --- & \checkmark & --- & \checkmark & --- \\
+zk-IoT~\cite{ramezan2024zkiot} & \checkmark & \checkmark & --- & $\sim$ & --- \\
+Jagannath et al.~\cite{jagannath2025zksnark} & \checkmark & \checkmark & --- & --- & --- \\
+UNTP/DPP~\cite{untp_dpp} & --- & $\sim$ & --- & --- & \checkmark \\
+EU Battery Passport~\cite{eu_battery_passport} & --- & $\sim$ & --- & --- & \checkmark \\
+\midrule
+\textbf{Assurance Passport (ours)} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+As Table~\ref{tab:related-work} illustrates, existing work addresses subsets of the design space but no prior approach combines all five dimensions.
+Blockchain-based engineering trust systems (Yue \& Guerra, Lu et al., SIMBA Chain) lack ZK privacy.
+ZK systems on constrained hardware (ZPiE) lack blockchain integration.
+ZK--blockchain systems (zk-IoT, our prior work) do not target engineering artifacts.
+VC profiles (UNTP, EU Battery Passport) exist for sustainability and product compliance but not for engineering assurance.
+The assurance passport is, to the best of our knowledge, the first framework to unify consortium blockchain, zero-knowledge proofs, engineering artifact provenance, edge deployment, and a W3C-aligned VC profile.
