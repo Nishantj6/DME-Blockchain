@@ -1,3 +1,8 @@
+% ========================================
+% References for Assurance Passport Paper
+% Updated: 2026-03-08 via /lit-review
+% ========================================
+
 % ---- Prior Work (Author) ----
 @article{jagannath2025zksnark,
   author={Jagannath, Nishant and others},
@@ -8,26 +13,65 @@
   year={2025}
 }
 
-% ---- Blockchain for Engineering / ASOT ----
+% ---- P1: Blockchain for Engineering / ASOT ----
+
+@inproceedings{yue2021blockchain_mbse,
+  author={Yue, Kwok-bun and Guerra, Mark and Wagner, Howard and others},
+  title={Applying Blockchain Technology on Model-Based Systems Engineering},
+  booktitle={AIAA SciTech 2021 Forum},
+  pages={AIAA 2021-0093},
+  year={2021},
+  doi={10.2514/6.2021-0093}
+}
+
+@inproceedings{yue2023confidentiality,
+  author={Yue, Kwok-bun and Guerra, Mark and others},
+  title={Confidentiality and Data Integrity in Consortium Blockchain Applications for Model Based Systems Engineering},
+  booktitle={AIAA SciTech 2023 Forum},
+  pages={AIAA 2023-1113},
+  year={2023},
+  doi={10.2514/6.2023-1113}
+}
+
 @article{lu2020decentralized,
   author={Lu, Jinzhi and Zheng, Xiaochen and Gharaei, Nilufar and Kiritsis, Dimitris},
-  title={A Decentralized Marketplace for Model-Based Systems Engineering},
+  title={Towards a Decentralized Digital Engineering Assets Marketplace: Empowered by Model-Based Systems Engineering and Distributed Ledger Technology},
   journal={arXiv preprint},
   volume={arXiv:2005.05415},
   pages={1--10},
   year={2020}
 }
 
-% SIMBA Chain — TODO: verify/replace with proper publication after /lit-review
+@article{harz2020permissioned,
+  author={Harz, Dominik and Bader, Max and others},
+  title={Realizing the Role of Permissioned Blockchains in a Systems Engineering Lifecycle},
+  journal={Systems},
+  volume={8},
+  number={4},
+  pages={41},
+  year={2020},
+  publisher={MDPI},
+  doi={10.3390/systems8040041}
+}
+
 @online{simba_chain,
   author={{SIMBA Chain Inc.}},
   title={{SIMBA Chain}: Blockchain for Government and Defense Supply Chains},
   year={2023},
-  url={https://simbachain.com},
-  note={[Online; accessed 2026-03-08]. Blockchain infrastructure deployed under U.S. Department of Defense contracts}
+  url={https://simbachain.com/case-study/department-of-defense/},
+  note={[Online; accessed 2026-03-08]. ALAMEDA project: blockchain single source of truth for U.S. Navy and DLA}
 }
 
-% ---- ZK Proofs ----
+@inproceedings{kuhn2017digital_twin_blockchain,
+  author={Kuhn, Thomas and others},
+  title={Towards a Digital Twin: How the Blockchain Can Foster {E/E}-Traceability in Consideration of Model-Based Systems Engineering},
+  booktitle={Proc. International Conference on Engineering Design (ICED)},
+  year={2017},
+  publisher={Design Society}
+}
+
+% ---- P2: ZK Proofs ----
+
 @inproceedings{groth2016size,
   author={Groth, Jens},
   title={On the Size of Pairing-Based Non-interactive Arguments},
@@ -40,18 +84,86 @@
   doi={10.1007/978-3-662-49896-5_11}
 }
 
-% ZPiE — TODO: verify/replace with proper publication after /lit-review
-@inproceedings{zpie,
-  author={Steffen, Samuel and Bichsel, Benjamin and Baumgartner, Roger and Vechev, Martin},
+@article{salleras2021zpie,
+  author={Salleras, Xavier and Daza, Vanesa},
   title={{ZPiE}: Zero-Knowledge Proofs in Embedded Systems},
-  booktitle={Proc. IEEE Symposium on Security and Privacy (S\&P)},
-  year={2024},
-  note={TODO: Verify venue, authors, and pages via /lit-review}
+  journal={Mathematics},
+  volume={9},
+  number={20},
+  pages={2569},
+  year={2021},
+  publisher={MDPI},
+  doi={10.3390/math9202569}
 }
 
-% ---- W3C Verifiable Credentials ----
+@inproceedings{ramezan2024zkiot,
+  author={Ramezan, Gholamreza and Meamari, Ehsan},
+  title={zk-{IoT}: Securing the {Internet of Things} with Zero-Knowledge Proofs on Blockchain Platforms},
+  booktitle={Proc. IEEE International Conference on Blockchain},
+  year={2024},
+  note={Also available as arXiv:2402.08322}
+}
+
+@inproceedings{zkp_supply_chain2024,
+  author={Various},
+  title={Zero-Knowledge Proofs in Blockchain-Enabled Supply Chain Management},
+  booktitle={Blockchain Technology and Applications},
+  series={Lecture Notes in Computer Science},
+  publisher={Springer},
+  year={2024},
+  doi={10.1007/978-981-97-0088-2_3},
+  note={Verify full author list}
+}
+
+@article{maritime_zkp2025,
+  author={Various},
+  title={Enhancing Maritime Supply Chain Security and Efficiency: A Review of Zero-Knowledge Proofs in Blockchain Applications},
+  journal={Maritime Policy \& Management},
+  year={2025},
+  publisher={Taylor \& Francis},
+  doi={10.1080/03088839.2025.2580502},
+  note={Verify full author list}
+}
+
+% ---- P2: ZK + Digital Twin (from deliberation) ----
+
+% PRZK-Bind — flagged by domain reviewer as near-competitor
+% TODO: Verify this citation — arXiv:2508.17913, IEEE GLOBECOM 2025
+% Domain reviewer claims: Schnorr-based ZK for digital twin binding in smart cities
+% CANNOT VERIFY — arXiv ID 2508.x would be Aug 2025, may not exist yet as of Mar 2026
+% Flag: UNVERIFIED — search for this paper before citing
+@misc{przk_bind2025,
+  author={Various},
+  title={{PRZK-Bind}: Zero-Knowledge Authentication for Digital Twin Binding},
+  year={2025},
+  note={UNVERIFIED: Claimed arXiv:2508.17913, IEEE GLOBECOM 2025. Must verify before citing}
+}
+
+% ---- P2: ZK Surveys ----
+
+@article{zkp_survey2025,
+  author={R, Various and others},
+  title={Promise of Zero-Knowledge Proofs ({ZKPs}) for Blockchain Privacy and Security: Opportunities, Challenges, and Future Directions},
+  journal={Security and Privacy},
+  year={2025},
+  publisher={Wiley},
+  doi={10.1002/spy2.461},
+  note={Verify full author list}
+}
+
+@article{zkp_frameworks_survey2025,
+  author={Various},
+  title={Zero-Knowledge Proof Frameworks: A Survey},
+  journal={arXiv preprint},
+  volume={arXiv:2502.07063},
+  year={2025},
+  note={Verify full author list}
+}
+
+% ---- P3: Verifiable Credentials / Standards ----
+
 @techreport{w3c_vc,
-  author={Sporny, Manu and Noble, Grant and Longley, Dave and Burnett, Daniel C. and Zundel, Brent and Backes, Kyle Den Hartog},
+  author={Sporny, Manu and Noble, Grant and Longley, Dave and Burnett, Daniel C. and Zundel, Brent and Den Hartog, Kyle},
   title={Verifiable Credentials Data Model v2.0},
   institution={{World Wide Web Consortium (W3C)}},
   type={{W3C} Recommendation},
@@ -59,7 +171,41 @@
   url={https://www.w3.org/TR/vc-data-model-2.0/}
 }
 
-% ---- DME / Digital Engineering ----
+@online{untp_dpp,
+  author={{UNCEFACT}},
+  title={Digital Product Passport -- {UN} Transparency Protocol},
+  year={2025},
+  url={https://uncefact.github.io/spec-untp/docs/specification/DigitalProductPassport/},
+  note={[Online; accessed 2026-03-08]. VC-based product passport for supply chain transparency}
+}
+
+@online{open_badges3,
+  author={{1EdTech}},
+  title={Open Badges Specification v3.0},
+  year={2024},
+  url={https://www.imsglobal.org/spec/ob/v3p0},
+  note={[Online; accessed 2026-03-08]. W3C VC-aligned digital credential standard for education}
+}
+
+@article{dpp_did_vc2024,
+  author={Various},
+  title={Digital Product Passport Management with Decentralised Identifiers and Verifiable Credentials},
+  journal={arXiv preprint},
+  volume={arXiv:2410.15758},
+  year={2024},
+  note={Verify full author list. Reference architecture for VC-based DPPs with selective disclosure}
+}
+
+@online{eu_battery_passport,
+  author={{European Union}},
+  title={Regulation ({EU}) 2023/1542 -- Battery Passport Requirements},
+  year={2023},
+  url={https://eur-lex.europa.eu/eli/reg/2023/1542/oj},
+  note={Mandatory VC-based digital product passport for batteries, effective Feb 2027}
+}
+
+% ---- P3: DME / Digital Engineering ----
+
 @techreport{dod_de_strategy,
   author={{Office of the Deputy Assistant Secretary of Defense for Systems Engineering}},
   title={Digital Engineering Strategy},
@@ -68,9 +214,38 @@
   url={https://man.fas.org/eprint/digeng-2018.pdf}
 }
 
-% TODO: Add INCOSE references after /lit-review
+@techreport{dod_me_guide2023,
+  author={Moreland, James and others},
+  title={Mission Engineering Guide, Version 2.0},
+  institution={{United States Department of Defense, OUSD(R\&E)}},
+  year={2023}
+}
+
+@inproceedings{martin2023uaf_me,
+  author={Martin, James N. and others},
+  title={Using the Unified Architecture Framework in Support of Mission Engineering Activities},
+  booktitle={INCOSE International Symposium},
+  year={2023},
+  doi={10.1002/iis2.13075}
+}
+
+@inproceedings{dme_framework2024,
+  author={Various},
+  title={Towards Developing a Digital Mission Engineering Framework},
+  booktitle={Systems Engineering and Artificial Intelligence},
+  publisher={Springer},
+  year={2024},
+  doi={10.1007/978-3-031-49179-5_6},
+  note={Verify full author list}
+}
 
 % ---- Consortium Blockchain ----
-% TODO: Add GoQuorum technical documentation citation after /lit-review
 
-% ---- Additional references to add from /lit-review ----
+@inproceedings{wells2023hotstuff_goquorum,
+  author={Wells, Various and others},
+  title={A Performance Evaluation of Basic {HotStuff} in Private {ConsenSys GoQuorum} Networks},
+  booktitle={Proc. IEEE International Conference on Blockchain},
+  year={2023},
+  doi={10.1109/Blockchain60715.2023.00052},
+  note={Verify full author list. Compares IBFT/QBFT/BHS under varying network conditions}
+}
