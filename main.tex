@@ -1,14 +1,73 @@
-\documentclass{article}
-\usepackage{graphicx} % Required for inserting images
+\documentclass[journal]{IEEEtran}
 
-\title{DME-Blockchain}
-\author{nishantj6666 }
-\date{March 2026}
+% ---- Packages ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{cite}
+\usepackage{balance}
+
+% ---- Metadata ----
+\title{Assurance Passports: Privacy-Preserving Trust for Digital Mission Engineering via Consortium Blockchain and Zero-Knowledge Proofs}
+
+\author{
+  \IEEEauthorblockN{Nishant Jagannath}
+  \IEEEauthorblockA{
+    University of Canberra\\
+    Canberra, Australia\\
+    nishant.jagannath@canberra.edu.au
+  }
+  % Add co-authors here
+}
 
 \begin{document}
 
 \maketitle
 
-\section{Introduction}
+\begin{abstract}
+% TODO: Draft after Introduction, refine last
+\end{abstract}
+
+\begin{IEEEkeywords}
+Zero-knowledge proofs, consortium blockchain, digital mission engineering, assurance passport, verifiable credentials, authoritative source of truth, privacy-preserving provenance
+\end{IEEEkeywords}
+
+% ---- I. Introduction ----
+\input{sections/introduction}
+
+% ---- II. Related Work ----
+\input{sections/related-work}
+
+% ---- III. Preliminaries ----
+\input{sections/preliminaries}
+
+% ---- IV. Threat Model ----
+\input{sections/threat-model}
+
+% ---- V. Assurance Passport Framework ----
+\input{sections/framework}
+
+% ---- VI. System Architecture ----
+\input{sections/architecture}
+
+% ---- VII. Evaluation ----
+\input{sections/evaluation}
+
+% ---- VIII. Discussion ----
+\input{sections/discussion}
+
+% ---- IX. Conclusion ----
+\input{sections/conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 
 \end{document}
