@@ -15,7 +15,7 @@ The testbed comprises four NVIDIA Jetson Nano 4~GB boards connected via Gigabit 
 Circuit compilation and trusted setup are performed offline on an Apple M4 Max laptop.
 
 \textbf{Software.}
-ZK circuits are implemented in Circom 2.1 and compiled to R1CS.
+ZK circuits are implemented in Circom 2.1~\cite{belles2023circom} and compiled to R1CS.
 Proof generation uses SnarkJS with the Groth16 prover on BN254.
 Smart contracts are deployed using Hardhat with Solidity 0.8.x.
 The on-chain Poseidon library uses an optimized Solidity implementation with arity-4, matching the in-circuit parameterization.

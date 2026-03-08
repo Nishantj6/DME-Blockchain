@@ -9,6 +9,7 @@ Table~\ref{tab:related-work} summarizes how existing approaches compare to the a
 
 The application of blockchain to systems engineering has progressed from conceptual proposals to funded prototypes.
 Kuhn et al.~\cite{kuhn2017digital_twin_blockchain} were among the first to propose blockchain for traceability in the context of digital twins and MBSE, focusing on electrical/electronic (E/E) architecture artifacts.
+Suhail et al.~\cite{suhail2022bcdt} provide a comprehensive survey of blockchain-based digital twins, identifying provenance-enabled lineage tracking as a key capability but noting that no existing work applies zero-knowledge proofs to digital twin provenance.
 Yue, Guerra, and Wagner~\cite{yue2021blockchain_mbse} conducted a pilot blockchain experiment on an aerospace MBSE project using Hyperledger Fabric, identifying governance complexity, compliance requirements, and privacy rules as key challenges for consortium deployments.
 In a follow-up study, Yue and Guerra~\cite{yue2023confidentiality} directly addressed confidentiality and data integrity in consortium blockchain for MBSE, proposing access control mechanisms to protect intellectual property between participating organizations.
 This work is the closest to ours on the blockchain--engineering axis; however, their approach relies on permissioned access control rather than cryptographic privacy, meaning that authorized participants still have full visibility into shared data.
@@ -49,6 +50,9 @@ The W3C Verifiable Credentials Data Model v2.0~\cite{w3c_vc} provides a standard
 Domain-specific VC profiles have emerged for several sectors: Open Badges 3.0~\cite{open_badges3} aligns with W3C VCs for educational achievement credentials, and the UN Transparency Protocol (UNTP)~\cite{untp_dpp} defines VC-based Digital Product Passports for supply chain sustainability.
 The EU Battery Regulation~\cite{eu_battery_passport} will mandate VC-based product passports with conformity data and tiered stakeholder access from 2027---the first legally mandated sector-specific VC profile at scale.
 Architectural guidance for implementing Digital Product Passports using decentralized identifiers (DIDs) and VCs with selective disclosure has been provided by recent work~\cite{dpp_did_vc2024}.
+On the cryptographic side, BBS+ signatures~\cite{tessaro2023bbs} enable attribute-level selective disclosure natively within VC presentations---a holder can reveal a subset of credential fields without a full ZK proof.
+However, BBS+ supports only field-level reveal (``show attribute $A$ but not $B$''), not predicate attestation over hidden data (``prove property $P(x)$ without revealing $x$'').
+The assurance passport requires the latter: proving that a hidden artifact satisfies structural and relational predicates, which necessitates general-purpose ZK circuits rather than signature-based selective disclosure.
 
 Despite this momentum, no VC profile exists for engineering assurance or DME artifacts.
 The assurance passport proposed in this paper fills this gap by defining a VC schema for engineering artifact attestation, analogous to how Open Badges serves education and UNTP serves sustainability.
@@ -72,6 +76,7 @@ zk-IoT~\cite{ramezan2024zkiot} & \checkmark & \checkmark & --- & $\sim$ & --- \\
 Jagannath et al.~\cite{jagannath2025zksnark} & \checkmark & \checkmark & --- & --- & --- \\
 UNTP/DPP~\cite{untp_dpp} & --- & $\sim$ & --- & --- & \checkmark \\
 EU Battery Passport~\cite{eu_battery_passport} & --- & $\sim$ & --- & --- & \checkmark \\
+BBS+ Signatures~\cite{tessaro2023bbs} & --- & $\sim$ & --- & --- & $\sim$ \\
 \midrule
 \textbf{Assurance Passport (ours)} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
@@ -83,6 +88,7 @@ Blockchain-based engineering trust systems (Yue \& Guerra, Lu et al., SIMBA Chai
 ZK systems on constrained hardware (ZPiE) lack blockchain integration.
 ZK--blockchain systems (zk-IoT, our prior work) do not target engineering artifacts.
 VC profiles (UNTP, EU Battery Passport) exist for sustainability and product compliance but not for engineering assurance.
+BBS+ signatures provide attribute-level selective disclosure but not predicate attestation over hidden structured data.
 The assurance passport is the first framework, to our knowledge, to unify consortium blockchain, zero-knowledge proofs, engineering artifact provenance, edge deployment, and a W3C-aligned VC profile.
 
 A natural question is whether ZK proofs add meaningful value over simple signed hashes stored on-chain.
