@@ -46,31 +46,36 @@ The assurance passport framework aims to provide the following properties:
 \label{sec:proof-predicates}
 
 To distinguish the assurance passport from simple signed hashes, we define four classes of ZK proof predicates that go beyond hash-correctness.
-For each predicate, a prover generates a proof $\pi$ and a verifier checks $\textsf{ZK.Verify}(\pi) \rightarrow \{0, 1\}$; the prover's witness (the artifact content) is never revealed.
+Each predicate is realized as a zk-SNARK circuit with a public input $x$ (visible to verifiers) and a private witness $w$ (the artifact content, hidden from verifiers).
+Given a common reference string from a trusted setup ceremony (see Section~\ref{sec:scope} for trust implications), a prover generates $\pi \leftarrow \textsf{Prove}(\mathsf{pk}, x, w)$ and a verifier checks $\textsf{Verify}(\mathsf{vk}, x, \pi) \rightarrow \{0, 1\}$.
 
 \begin{enumerate}
-    \item \textbf{Schema Compliance.} The artifact conforms to a specified schema $S$:
+    \item \textbf{Schema Compliance.} The artifact conforms to a specified schema $S$.
+    Public input: on-chain commitment $c_i = H(a_i^{v})$ and schema identifier $S$. Witness: artifact content $a_i^{v}$.
     \begin{equation}
     \label{eq:schema}
-    \pi_{\text{schema}} \leftarrow \textsf{ZK.Prove}\!\left(a_i^{v} \models S\right)
+    \pi_{\text{schema}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i, S),\; a_i^{v}\right) \quad \text{s.t.} \quad H(a_i^{v}) = c_i \;\wedge\; a_i^{v} \models S
     \end{equation}
 
-    \item \textbf{Version Validity.} The artifact is a valid update of its predecessor according to update rules $R$:
+    \item \textbf{Version Validity.} The artifact is a valid update of its predecessor according to update rules $R$.
+    Public input: commitments $c_i^{v}, c_i^{v+1}$. Witness: both artifact versions and the delta $\Delta$.
     \begin{equation}
     \label{eq:version}
-    \pi_{\text{version}} \leftarrow \textsf{ZK.Prove}\!\left(a_i^{v+1} = R(a_i^{v}, \Delta)\right)
+    \pi_{\text{version}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i^{v}, c_i^{v+1}),\; (a_i^{v}, a_i^{v+1}, \Delta)\right)
     \end{equation}
 
-    \item \textbf{Authorized Origin.} The artifact was produced by an authorized stakeholder using an approved tool:
+    \item \textbf{Authorized Origin.} The artifact was produced by an authorized stakeholder using an approved tool.
+    Public input: commitment $c_i$, Merkle roots of $\mathcal{S}_{\text{auth}}(a)$ and $\mathcal{T}_{\text{approved}}$. Witness: stakeholder credential, tool identity, Merkle paths.
     \begin{equation}
     \label{eq:origin}
-    \pi_{\text{origin}} \leftarrow \textsf{ZK.Prove}\!\left(S_i \in \mathcal{S}_{\text{auth}}(a) \wedge T \in \mathcal{T}_{\text{approved}}\right)
+    \pi_{\text{origin}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i, \mathsf{root}_S, \mathsf{root}_T),\; (S_i, T, \mathsf{path}_S, \mathsf{path}_T)\right)
     \end{equation}
 
-    \item \textbf{Derivation Lineage.} The artifact was derived from a specific parent artifact using a known transformation:
+    \item \textbf{Derivation Lineage.} The artifact was derived from a specific parent artifact using a known deterministic transformation $f_T$.
+    Public input: commitments $c_i^{v}, c_j^{v'}$ and transformation identifier $T$. Witness: both artifact contents.
     \begin{equation}
     \label{eq:lineage}
-    \pi_{\text{lineage}} \leftarrow \textsf{ZK.Prove}\!\left(a_j^{v'} = f_T(a_i^{v})\right)
+    \pi_{\text{lineage}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i^{v}, c_j^{v'}, T),\; (a_i^{v}, a_j^{v'})\right)
     \end{equation}
 \end{enumerate}
 
@@ -85,7 +90,9 @@ If a stakeholder submits a legitimately authored but technically flawed simulati
 This ``garbage in, garbage out'' (GIGO) limitation is inherent to any integrity-focused system and is explicitly out of scope.
 
 \textbf{Trust assumptions.}
-We assume that the consortium blockchain operates under an honest-majority assumption among validator nodes (standard for IBFT/QBFT consensus), that the ZK proof system is computationally sound (no polynomial-time adversary can produce a valid proof for a false statement), and that each stakeholder's signing key is not compromised.
+We assume that the consortium blockchain operates under an honest-supermajority assumption among validator nodes (i.e., fewer than one-third are Byzantine, as required by IBFT/QBFT consensus), that the ZK proof system is knowledge-sound under the Knowledge-of-Exponent assumption (standard for Groth16), that the trusted setup ceremony was performed correctly (i.e., toxic waste was destroyed), and that each stakeholder's signing key is not compromised.
+In a multi-stakeholder consortium, the trusted setup is a non-trivial trust point: a compromised common reference string would break soundness for all proof predicates.
+We recommend a multi-party computation (MPC) ceremony, as used in Zcash and other deployed systems, to distribute trust across participants.
 Key management and revocation are orthogonal concerns addressed by standard PKI infrastructure.
 
 \textbf{Collusion bound.}

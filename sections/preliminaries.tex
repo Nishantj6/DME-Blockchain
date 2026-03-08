@@ -1,11 +1,108 @@
 \section{Preliminaries}
 \label{sec:preliminaries}
 
-% Define:
-% - ZK-SNARKs (Groth16, trusted setup, prover/verifier)
-% - Consortium blockchain (GoQuorum, IBFT/QBFT/Raft)
-% - W3C Verifiable Credentials (VC profile, not "cryptographic primitive")
-% - DME / ASOT / MBSE concepts
-% - Notation table
+This section introduces the foundational concepts and notation used throughout the paper.
+Table~\ref{tab:notation} summarizes the key symbols.
 
-% TODO: Draft
+\begin{table}[t]
+\centering
+\caption{Summary of notation.}
+\label{tab:notation}
+\begin{tabular}{cl}
+\toprule
+\textbf{Symbol} & \textbf{Description} \\
+\midrule
+$S_i$ & Stakeholder $i$ \\
+$a_i^{v}$ & Artifact $i$, version $v$ \\
+$\mathcal{S}_{\text{auth}}(a)$ & Set of stakeholders authorized for artifact $a$ \\
+$\mathcal{T}_{\text{approved}}$ & Set of approved toolchains \\
+$\pi$ & Zero-knowledge proof \\
+$\textsf{ZK.Prove}(\cdot)$ & Proof generation algorithm \\
+$\textsf{ZK.Verify}(\pi)$ & Proof verification algorithm \\
+$c$ & On-chain commitment \\
+$P(\cdot)$ & Property predicate \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Zero-Knowledge Succinct Non-interactive Arguments of Knowledge}
+\label{sec:prelim-zksnark}
+
+A zero-knowledge succinct non-interactive argument of knowledge (zk-SNARK) is a proof system that allows a prover to convince a verifier that a statement $x$ is true with respect to a witness $w$, without revealing $w$ and without interaction beyond a single message~\cite{groth2016size}.
+Formally, a zk-SNARK for an NP relation $\mathcal{R}$ consists of three algorithms:
+
+\begin{itemize}
+    \item $(\mathsf{pk}, \mathsf{vk}) \leftarrow \textsf{Setup}(1^\lambda, \mathcal{R})$: A one-time setup that generates a proving key $\mathsf{pk}$ and verification key $\mathsf{vk}$ for relation $\mathcal{R}$, parameterized by a security parameter $\lambda$.
+    \item $\pi \leftarrow \textsf{Prove}(\mathsf{pk}, x, w)$: The prover generates a proof $\pi$ that $(x, w) \in \mathcal{R}$.
+    \item $\{0, 1\} \leftarrow \textsf{Verify}(\mathsf{vk}, x, \pi)$: The verifier accepts (1) or rejects (0) the proof.
+\end{itemize}
+
+A zk-SNARK satisfies three properties: \emph{completeness} (an honest prover always convinces the verifier), \emph{soundness} (no polynomial-time adversary can produce a valid proof for a false statement, except with negligible probability), and \emph{zero-knowledge} (the proof reveals nothing about the witness beyond the truth of the statement).
+
+We use the Groth16 construction~\cite{groth2016size}, which produces constant-size proofs (2 $\mathbb{G}_1$ + 1 $\mathbb{G}_2$ elements, approximately 192 bytes compressed on BN254) and enables verification in constant time (3 pairing operations).
+Groth16 requires a \emph{trusted setup} ceremony that generates a structured reference string (SRS); if the toxic waste from this ceremony is not properly destroyed, soundness can be violated.
+We discuss alternatives to trusted setup (e.g., PLONK, STARKs) in Section~\ref{sec:discussion}.
+
+In our framework, the witness $w$ is the engineering artifact content, the statement $x$ is a property predicate (e.g., ``this artifact conforms to schema $S$''), and the proof $\pi$ is included in the assurance passport credential.
+
+\subsection{Consortium Blockchain and Consensus Protocols}
+\label{sec:prelim-blockchain}
+
+A consortium blockchain is a permissioned distributed ledger where a predefined set of validator nodes maintains consensus on the shared state.
+Unlike public blockchains, consortium chains restrict participation to authorized entities, providing higher throughput and finality guarantees at the cost of decentralization.
+
+We use GoQuorum~\cite{wells2023hotstuff_goquorum}, an enterprise-grade Ethereum fork originally developed by J.P. Morgan and later maintained by ConsenSys, which supports private transactions and multiple consensus protocols.
+While ConsenSys has since shifted focus to Hyperledger Besu as the primary enterprise Ethereum client, GoQuorum remains functional and was selected for our proof-of-concept due to its mature Raft support, EVM compatibility, and existing deployment on our edge hardware testbed.
+Our evaluation compares three consensus mechanisms:
+
+\textbf{Istanbul Byzantine Fault Tolerance (IBFT).}
+A PBFT-inspired protocol where a designated proposer broadcasts a block and validators exchange three rounds of messages (pre-prepare, prepare, commit) to reach agreement.
+IBFT tolerates up to $f = \lfloor (n-1)/3 \rfloor$ Byzantine faults among $n$ validators and provides immediate transaction finality.
+
+\textbf{QBFT.}
+An optimized variant of IBFT that reduces message complexity and improves performance under normal (non-Byzantine) conditions while maintaining the same fault tolerance bound.
+QBFT is the recommended BFT protocol for GoQuorum production deployments.
+
+\textbf{Raft.}
+A crash fault tolerant (CFT) protocol based on leader election.
+Raft assumes nodes may crash but do not behave maliciously, tolerating up to $f = \lfloor (n-1)/2 \rfloor$ crash faults.
+It offers faster block times than BFT protocols but provides weaker security guarantees, making it suitable for trusted single-organization deployments.
+
+For DME environments with mutually distrusting stakeholders, IBFT or QBFT is required; Raft serves as a performance upper bound in our benchmarks.
+
+\subsection{W3C Verifiable Credentials}
+\label{sec:prelim-vc}
+
+The W3C Verifiable Credentials Data Model~\cite{w3c_vc} defines a standard for expressing tamper-evident credentials on the web.
+A verifiable credential (VC) consists of three components:
+
+\begin{itemize}
+    \item \textbf{Credential metadata}: issuer identity, issuance date, expiration, credential type.
+    \item \textbf{Claims}: a set of subject-property-value assertions (e.g., ``artifact $a$ conforms to schema $S$'').
+    \item \textbf{Proof}: a cryptographic proof binding the claims to the issuer (e.g., a digital signature or a zero-knowledge proof).
+\end{itemize}
+
+A \emph{VC profile} is a domain-specific specialization of the VC data model that defines the credential schema, claim types, and proof mechanisms for a particular use case.
+Examples include Open Badges 3.0 for educational achievements~\cite{open_badges3} and the UNTP Digital Product Passport for supply chain sustainability~\cite{untp_dpp}.
+The assurance passport defined in Section~\ref{sec:framework} is a VC profile for engineering artifact attestation.
+
+Credentials are issued by an \emph{issuer} (in our case, the stakeholder's ZK proof system), held by a \emph{holder} (the stakeholder), and verified by a \emph{verifier} (any ASOT participant or auditor) without contacting the issuer.
+When combined with zero-knowledge proofs, the credential's proof field enables \emph{selective disclosure}: the holder can prove specific claims without revealing the full credential or underlying data.
+
+\subsection{Digital Mission Engineering}
+\label{sec:prelim-dme}
+
+Digital Mission Engineering (DME) is the application of digital engineering principles to mission-level analysis and decision-making~\cite{dod_de_strategy, dod_me_guide2023}.
+In a DME ecosystem, stakeholders use Model-Based Systems Engineering (MBSE) tools to create, maintain, and share engineering artifacts---including system architecture models (e.g., SysML, UAF), simulation configurations, requirements documents, and trade study results.
+
+The \emph{Authoritative Source of Truth} (ASOT) is a governed repository that serves as the single reference point for the current state of all engineering artifacts.
+In multi-stakeholder environments, maintaining ASOT integrity requires:
+\begin{itemize}
+    \item \textbf{Provenance}: tracing each artifact to its originating stakeholder and tool.
+    \item \textbf{Version control}: tracking artifact evolution with immutable history.
+    \item \textbf{Access governance}: controlling who can contribute, modify, or view specific artifacts.
+    \item \textbf{Configuration management}: establishing and auditing baselines of approved artifact sets at decision points.
+    \item \textbf{Interoperability}: supporting diverse toolchains across organizational boundaries.
+\end{itemize}
+
+Current ASOT implementations address these requirements through centralized governance and access control policies, but do not provide cryptographic guarantees---the gap our framework addresses.
