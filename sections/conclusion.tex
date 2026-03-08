@@ -1,15 +1,19 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-% Summary of contributions:
-% 1. Assurance Passport VC profile for DME
-% 2. Vendor-neutral blockchain+ZK trust architecture
-% 3. Edge hardware evaluation with GoQuorum
-%
-% Future work:
-% - Richer ZK predicates (cross-layer semantic proofs)
-% - Larger-scale deployment
-% - Integration with additional DME platforms
-% - Formal verification of circuit correctness
+This paper presented the \emph{assurance passport}, a W3C verifiable credential profile that combines consortium blockchain with zero-knowledge proofs to provide privacy-preserving trust for Digital Mission Engineering.
+We made three contributions.
 
-% TODO: Draft
+First, we defined the assurance passport as a domain-specific VC profile for engineering artifact attestation, specifying four ZK proof predicates---schema compliance, version validity, authorized origin, and derivation lineage---under a multi-stakeholder threat model with five security goals.
+The framework supports self-issued credentials with trust anchored in mathematical proof soundness and on-chain commitment immutability, complemented by endorsement credentials for governance approval.
+
+Second, we presented a portable system architecture demonstrated on a GoQuorum consortium blockchain, Groth16 zk-SNARK circuits with Poseidon hashing, and a production DME platform (Kompozition) via a non-invasive adapter pattern.
+The architecture uses a unified hash function (Poseidon) both on-chain and in-circuit, eliminating the Keccak/Poseidon equivalence problem, and localizes vendor-specific logic to the serialization layer.
+
+Third, we deployed and evaluated a proof-of-concept on edge hardware (four NVIDIA Jetson Orin Nano boards), benchmarking proof generation, on-chain verification, and throughput across two BFT consensus protocols (IBFT, QBFT) and a CFT baseline (Raft).
+The evaluation demonstrates that ZK-based artifact attestation is feasible on resource-constrained hardware, with proof generation as the performance bottleneck and on-chain verification remaining lightweight via BN254 pairing precompiles.
+
+The assurance passport addresses a gap at the intersection of blockchain-based engineering trust, zero-knowledge provenance, and verifiable credentials: no prior work combines these three elements for engineering artifact attestation.
+By enabling stakeholders to prove structural properties of artifacts without revealing proprietary content, the framework resolves the tension between transparency for trust and confidentiality for intellectual property protection---a fundamental barrier to artifact sharing in coalition DME environments.
+
+Future work includes extending the predicate set to V\&V attestation, supporting larger artifacts via Merkle-based incremental proofs, exploring recursive proof composition for constant-time bundle verification, and validating the framework in a multi-organization coalition deployment.

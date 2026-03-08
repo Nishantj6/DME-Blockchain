@@ -31,7 +31,7 @@ In coalition environments, this represents the IP exfiltration risk that prevent
 The assurance passport framework aims to provide the following properties:
 
 \begin{enumerate}
-    \item \textbf{Tamper Evidence (against A1).} Any modification to a committed artifact after time $t$ is detectable. Formally, given a commitment $c = \textsf{Commit}(a_i^{v}, t)$ anchored on-chain, any attempt to substitute $a_i' \neq a_i^{v}$ is detected with overwhelming probability.
+    \item \textbf{Tamper Evidence (against A1).} Any modification to a committed artifact after time $t$ is detectable. Formally, given a commitment $c_i^{v} = H(a_i^{v})$ anchored on-chain at time $t$, any attempt to substitute $a_i' \neq a_i^{v}$ is detected with overwhelming probability (by collision resistance of $H$).
 
     \item \textbf{Temporal Integrity (against A1, A2).} For any decision $d$ taken at time $t$, the exact set of artifact versions $\{a_1^{v_1}, \ldots, a_k^{v_k}\}$ that constituted the ASOT at time $t$ can be reconstructed and verified. No stakeholder can retroactively claim a different version was current, as the on-chain record is immutable.
 
@@ -51,10 +51,10 @@ Given a common reference string from a trusted setup ceremony (see Section~\ref{
 
 \begin{enumerate}
     \item \textbf{Schema Compliance.} The artifact conforms to a specified schema $S$.
-    Public input: on-chain commitment $c_i = H(a_i^{v})$ and schema identifier $S$. Witness: artifact content $a_i^{v}$.
+    Public input: on-chain commitment $c_i^{v} = H(a_i^{v})$ and schema identifier $S$. Witness: artifact content $a_i^{v}$.
     \begin{equation}
     \label{eq:schema}
-    \pi_{\text{schema}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i, S),\; a_i^{v}\right) \quad \text{s.t.} \quad H(a_i^{v}) = c_i \;\wedge\; a_i^{v} \models S
+    \pi_{\text{schema}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i^{v}, S),\; a_i^{v}\right) \quad \text{s.t.} \quad H(a_i^{v}) = c_i^{v} \;\wedge\; a_i^{v} \models S
     \end{equation}
 
     \item \textbf{Version Validity.} The artifact is a valid update of its predecessor according to update rules $R$.
@@ -65,21 +65,21 @@ Given a common reference string from a trusted setup ceremony (see Section~\ref{
     \end{equation}
 
     \item \textbf{Authorized Origin.} The artifact was produced by an authorized stakeholder using an approved tool.
-    Public input: commitment $c_i$, Merkle roots of $\mathcal{S}_{\text{auth}}(a)$ and $\mathcal{T}_{\text{approved}}$. Witness: stakeholder credential, tool identity, Merkle paths.
+    Public input: commitment $c_i^{v}$, Merkle roots of $\mathcal{S}_{\text{auth}}(a)$ and $\mathcal{T}_{\text{approved}}$. Witness: stakeholder credential, tool identity, Merkle paths.
     \begin{equation}
     \label{eq:origin}
-    \pi_{\text{origin}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i, \mathsf{root}_S, \mathsf{root}_T),\; (S_i, T, \mathsf{path}_S, \mathsf{path}_T)\right)
+    \pi_{\text{origin}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i^{v}, \mathsf{root}_S, \mathsf{root}_T),\; (S_i, T, \mathsf{path}_S, \mathsf{path}_T)\right)
     \end{equation}
 
-    \item \textbf{Derivation Lineage.} The artifact was derived from a specific parent artifact using a known deterministic transformation $f_T$.
-    Public input: commitments $c_i^{v}, c_j^{v'}$ and transformation identifier $T$. Witness: both artifact contents.
+    \item \textbf{Derivation Lineage.} The artifact was derived from a specific parent artifact using a known deterministic transformation $f_\tau$.
+    Public input: commitments $c_i^{v}, c_j^{v'}$ and transformation identifier $\tau$. Witness: both artifact contents.
     \begin{equation}
     \label{eq:lineage}
-    \pi_{\text{lineage}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i^{v}, c_j^{v'}, T),\; (a_i^{v}, a_j^{v'})\right)
+    \pi_{\text{lineage}} \leftarrow \textsf{Prove}\!\left(\mathsf{pk},\; (c_i^{v}, c_j^{v'}, \tau),\; (a_i^{v}, a_j^{v'})\right)
     \end{equation}
 \end{enumerate}
 
-These predicates are composed into an assurance passport credential, as defined in Section~\ref{sec:framework}.
+These predicates are bundled into an assurance passport credential, as defined in Section~\ref{sec:framework}.
 
 \subsection{Scope and Limitations}
 \label{sec:scope}

@@ -1,13 +1,117 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% Topics:
-% 1. GIGO limitation — integrity != correctness
-% 2. Scalability beyond KBs (larger artefacts, more stakeholders)
-% 3. Trusted setup risks and alternatives (PLONK, STARKs)
-% 4. Adoption barriers (consortium buy-in, tooling maturity)
-% 5. Edge vs cloud deployment trade-offs
-% 6. Comparison with prior work (arXiv:2504.04794): domain shift, new predicates
-% 7. Implications for coalition/cross-organizational DME
+This section examines the limitations, design trade-offs, and broader implications of the assurance passport framework.
 
-% TODO: Draft
+\subsection{Limitations}
+\label{sec:discussion-limitations}
+
+\textbf{Integrity without correctness.}
+As noted in Section~\ref{sec:scope}, the assurance passport guarantees structural integrity and provenance but not the technical correctness of the underlying artifact.
+A legitimately authored but flawed simulation model will receive a valid passport.
+This ``garbage in, garbage out'' limitation is inherent to any integrity-focused system and is complementary to, not a replacement for, Verification \& Validation (V\&V) processes.
+
+\textbf{Commitment hiding.}
+The current commitment scheme uses a bare hash: $c_i^{v} = H(a_i^{v})$.
+This provides binding (the committer cannot later claim a different artifact) but is not computationally hiding---an adversary who can guess the artifact content can verify their guess by hashing and comparing against the on-chain commitment.
+For engineering artifacts with sufficient structural complexity and entropy (e.g., full SysML models), brute-force guessing is infeasible.
+However, for small or predictable artifacts (e.g., a requirements document with a known template), a hiding commitment of the form $c_i^{v} = H(a_i^{v}, r)$, where $r$ is a random blinding factor included in the witness, would provide computational hiding.
+We consider this an important production hardening step, requiring only a minor circuit modification (the blinding factor $r$ becomes part of the private witness).
+
+\textbf{Artifact size bounds.}
+The current circuit design supports artifacts up to 256 field elements (approximately 8~KB serialized).
+While this covers many individual DME work products (requirements packages, interface specifications, trade study summaries), large system-of-systems models can exceed this bound by orders of magnitude.
+Scaling to larger artifacts requires either (a)~Merkle tree commitments over sub-artifact partitions, with each partition proved independently, or (b)~recursive proof composition (see Section~\ref{sec:discussion-future}).
+
+\textbf{Deterministic transformation constraint.}
+The derivation lineage predicate (Section~\ref{sec:proof-predicates}) requires that the transformation $f_\tau$ between parent and derived artifacts be deterministic.
+Many real-world DME workflows involve non-deterministic steps (e.g., stochastic simulations, human-in-the-loop design refinement).
+Extending the lineage predicate to probabilistic or approximate transformations is an open research problem.
+
+\subsection{Design Trade-Offs}
+\label{sec:discussion-tradeoffs}
+
+\textbf{Groth16 and trusted setup.}
+We selected Groth16 for its constant-size proofs (128~bytes compressed on BN254), constant-time verification (3 pairing operations), and mature tooling (Circom, SnarkJS).
+The principal drawback is the per-circuit trusted setup: each predicate circuit requires a separate setup ceremony, and a compromised common reference string breaks soundness for all proofs generated with that circuit.
+For production deployments, we recommend a multi-party computation (MPC) ceremony with at least one party per consortium stakeholder, following the protocol used in Zcash Sapling.
+Alternatively, universal-setup systems such as PLONK or transparent systems such as STARKs eliminate the per-circuit trusted setup at the cost of larger proofs (PLONK: $\sim$400--800~bytes; STARKs: $\sim$40--200~KB).
+For bandwidth-constrained DDIL environments, Groth16's proof compactness remains advantageous.
+
+\textbf{GoQuorum deprecation.}
+GoQuorum was selected for the proof-of-concept due to its mature Raft support, full EVM compatibility, and existing deployment on our edge hardware testbed.
+ConsenSys has since shifted focus to Hyperledger Besu as the primary enterprise Ethereum client.
+However, the assurance passport framework is not GoQuorum-specific: the smart contracts (Solidity), ZK verification (BN254 precompiles), and VC credential format are EVM-standard and portable to Besu, Polygon Edge, or any Ethereum-compatible consortium chain.
+Migration requires redeploying contracts and reconfiguring consensus; no architectural changes are needed.
+
+\textbf{Poseidon vs.\ Keccak.}
+The choice of Poseidon over Keccak-256 for artifact commitments is driven by in-circuit efficiency ($\sim$300 vs.\ $\sim$150{,}000 R1CS constraints per hash invocation).
+Using a single hash function for both on-chain and in-circuit computation eliminates the need for cross-hash equivalence proofs but introduces a non-standard on-chain hash.
+Since GoQuorum is permissioned, consortium operators can deploy a Poseidon library contract (or native precompile) without impacting the broader Ethereum ecosystem.
+This trade-off is appropriate for consortium chains but would require additional justification for public-chain deployments.
+
+\textbf{Self-issuance vs.\ third-party attestation.}
+The assurance passport uses a self-issuance model where the stakeholder who produces the artifact is also the credential issuer.
+Trust is anchored not in the issuer's identity but in the combination of ZK proof soundness, on-chain commitment immutability, and the authorized origin predicate $\pi_{\text{origin}}$.
+For programmatic acceptance decisions (e.g., milestone reviews), a separate endorsement credential issued by a designated authority provides the governance layer.
+This two-layer separation (cryptographic assurance + governance approval) mirrors established defense acquisition practice, where engineering evidence and programmatic approval are distinct activities.
+
+\subsection{DDIL Operational Considerations}
+\label{sec:discussion-ddil}
+
+Deploying the assurance passport in DDIL environments raises several operational concerns beyond performance.
+
+\textbf{Consensus liveness.}
+With $n=4$ validators under IBFT or QBFT, the system requires 3 of 4 nodes online for liveness.
+In DDIL scenarios with intermittent connectivity, losing two nodes halts block production.
+Mitigation strategies include:
+\begin{itemize}
+    \item Increasing the validator set (e.g., $n=7$, tolerating 2 faults).
+    \item Queuing commitment transactions locally during network partitions and replaying them upon reconnection.
+    \item Using Raft (crash fault tolerant, no BFT overhead) within a single-organization enclave where Byzantine behavior is not a concern, reserving IBFT/QBFT for cross-organizational boundaries.
+\end{itemize}
+
+\textbf{Clock synchronization.}
+Block timestamps in the commitment registry provide temporal ordering.
+DDIL environments may lack reliable NTP; however, IBFT/QBFT consensus provides a logical clock through block height, which is sufficient for ordering guarantees.
+Absolute wall-clock accuracy is relevant only for expiration checks in the credential's validity window, which can be set conservatively.
+
+\textbf{Network partitions.}
+If the consortium network splits, each partition operates independently.
+The BFT partition (with $\geq 3$ of 4 nodes) continues to finalize blocks; the minority partition halts.
+Commitments made on the majority partition are authoritative.
+A merge protocol for reconciling divergent state after partition healing is out of scope but is a relevant concern for extended DDIL operations.
+
+\subsection{Implications for Coalition DME}
+\label{sec:discussion-coalition}
+
+The assurance passport framework has particular relevance for coalition DME environments, where multiple organizations (potentially from different nations) contribute artifacts to a shared ASOT under strict IP protection requirements.
+The selective disclosure property (Security Goal~5) enables a stakeholder to prove that an artifact satisfies required properties---schema compliance, authorized provenance, version validity---without revealing the artifact content to coalition partners.
+This addresses a fundamental barrier to MBSE artifact sharing in defense contexts: the tension between transparency for trust and confidentiality for IP protection.
+
+The framework does not, however, address semantic interoperability across coalition toolchains.
+Each coalition partner may use different SysML profiles, metamodels, or domain-specific extensions.
+The canonical JSON serialization (Section~\ref{sec:arch-dme}) must be defined by consortium agreement.
+Cross-platform commitment interoperability---ensuring that the same logical model produces the same commitment regardless of source platform---requires a shared canonical metamodel specification, a prerequisite for multi-vendor coalition deployments.
+
+\subsection{Future Work}
+\label{sec:discussion-future}
+
+\textbf{V\&V attestation predicate.}
+A fifth proof predicate attesting to Verification \& Validation status would extend the passport's scope from structural integrity to programmatic acceptance.
+This could be modeled as a ZK proof that a designated IV\&V agent's signature endorses a specific predicate outcome, or as a separate endorsement credential within the VC framework.
+
+\textbf{Recursive proof composition.}
+Replacing the current concatenation-based proof bundling with recursive proof composition (e.g., SnarkPack or Halo-style folding) would reduce verification cost from $O(k)$ to $O(1)$ pairing operations for $k$ predicates.
+This is particularly attractive as the number of predicates grows beyond four.
+
+\textbf{Large artifact support.}
+Merkle tree commitments over artifact partitions, combined with incremental proof updates (proving only the changed sub-tree), would extend the framework to arbitrarily large engineering artifacts.
+Incremental proving also amortizes proof generation cost across version updates.
+
+\textbf{Formal circuit verification.}
+The correctness of ZK circuits is a critical trust assumption.
+Formal verification of the circuit implementations (e.g., using tools such as Ecne or Picus) would provide stronger assurance that the proof predicates correctly encode the intended properties.
+
+\textbf{Multi-chain federation.}
+For coalition environments spanning multiple consortium blockchains (e.g., one per national domain), a cross-chain bridge for commitment verification would enable federated ASOT operation without requiring all parties to share a single chain.

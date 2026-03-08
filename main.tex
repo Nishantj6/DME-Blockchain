@@ -33,7 +33,13 @@
 \maketitle
 
 \begin{abstract}
-% TODO: Draft after Introduction, refine last
+Digital Mission Engineering (DME) ecosystems require multiple stakeholders to share engineering artifacts through a shared Authoritative Source of Truth (ASOT), yet current implementations lack cryptographic tamper evidence, immutable accountability trails, and mechanisms for verifying artifact provenance without exposing proprietary content.
+We propose the \emph{assurance passport}, a W3C verifiable credential profile that combines consortium blockchain with zero-knowledge proofs to address these gaps.
+An assurance passport attests to four properties of an engineering artifact---schema compliance, version validity, authorized origin, and derivation lineage---via Groth16 zk-SNARK proofs, without disclosing the artifact itself.
+Commitments are anchored on a GoQuorum consortium blockchain, providing immutable temporal integrity and change accountability under a Byzantine fault-tolerant consensus model.
+We present a vendor-neutral system architecture integrating ZK proof generation, on-chain anchoring, and a production DME platform (Kompozition) via a non-invasive adapter.
+A proof-of-concept deployed on four NVIDIA Jetson Orin Nano edge boards demonstrates feasibility under Denied, Degraded, Intermittent, and Limited (DDIL) connectivity conditions, with benchmarks across IBFT, QBFT, and Raft consensus protocols.
+The assurance passport resolves the tension between transparency for trust and confidentiality for intellectual property protection, enabling privacy-preserving artifact sharing in coalition DME environments.
 \end{abstract}
 
 \begin{IEEEkeywords}

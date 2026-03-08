@@ -1,14 +1,135 @@
 \section{System Architecture}
 \label{sec:architecture}
 
-% Implementation architecture:
-% - GoQuorum consortium chain (IBFT, QBFT, Raft consensus options)
-% - ZK proof layer (circuit design, prover/verifier)
-% - On-chain vs off-chain data split
-% - Kompozition DME platform API integration
-% - Hardware: 4x NVIDIA Jetson boards + Mac laptop
-% - Artefact size: KBs (config files, specifications)
-%
-% Include architecture diagram (figures/architecture.pdf)
+This section describes the system architecture that realizes the assurance passport framework defined in Section~\ref{sec:framework}.
+We present the overall architecture (Section~\ref{sec:arch-overview}), the ZK circuit design (Section~\ref{sec:arch-zk}), the smart contract layer (Section~\ref{sec:arch-contracts}), and the integration with a production DME platform (Section~\ref{sec:arch-dme}).
 
-% TODO: Draft
+\subsection{Architecture Overview}
+\label{sec:arch-overview}
+
+The system comprises four layers, illustrated in Fig.~\ref{fig:architecture}:
+
+\begin{enumerate}
+    \item \textbf{DME Platform Layer.} A production DME platform (Kompozition) manages engineering artifacts, exposing versioned artifacts and metadata through a REST API.
+    \item \textbf{ZK Proof Layer.} A local proof generation service that takes artifact content from the DME platform, constructs the ZK circuits, and generates Groth16 proofs for the applicable predicates.
+    \item \textbf{Blockchain Layer.} A GoQuorum consortium blockchain that hosts the commitment registry, verification key registry, and credential status registry smart contracts.
+    \item \textbf{Credential Layer.} A credential management service that assembles assurance passports from the ZK proofs and on-chain anchors, and provides verification endpoints.
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.9\columnwidth}{\centering\vspace{1.5em}
+\textit{System Architecture}\\[0.5em]
+DME Platform (Kompozition) $\xrightarrow{\text{REST API}}$ ZK Proof Layer\\[0.3em]
+$\downarrow$ \hspace{6em} $\downarrow$\\[0.3em]
+Credential Layer $\xleftarrow{\text{anchor}}$ Blockchain (GoQuorum)
+\vspace{1.5em}}}
+\caption{High-level system architecture. Artifact content flows from the DME platform to the ZK proof layer (dashed, off-chain). Only commitments and proofs are anchored on-chain.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Hardware Deployment}
+\label{sec:arch-hardware}
+
+The proof-of-concept is deployed on a network of four NVIDIA Jetson Orin Nano boards, each serving as a consortium validator node and proof generation endpoint.
+This configuration simulates a four-stakeholder DME consortium where each stakeholder operates an edge node capable of:
+\begin{itemize}
+    \item Running a GoQuorum validator (participating in consensus).
+    \item Generating Groth16 proofs locally (using the Jetson's ARM CPU).
+    \item Submitting commitment transactions and verifying proofs on-chain.
+\end{itemize}
+
+The Jetson Orin Nano 8~GB Developer Kit (ARM Cortex-A78AE CPU, 1024-core Ampere GPU) represents a realistic edge deployment for DDIL environments where cloud connectivity cannot be assumed.
+The GPU is available for future acceleration but is not used for proof generation in the current implementation, which relies on CPU-based arithmetic.
+With $n=4$ validators, IBFT and QBFT require 3 of 4 nodes online for liveness, tolerating at most one Byzantine fault.
+This tight margin is a known constraint for DDIL scenarios with intermittent connectivity; we discuss mitigation strategies (e.g., increasing the validator set, queuing commitments during partitions) in Section~\ref{sec:discussion}.
+A separate development machine (Apple M-series laptop) is used for circuit compilation, trusted setup, and key generation---operations performed once during system initialization, not during normal operation.
+
+\subsection{ZK Circuit Design}
+\label{sec:arch-zk}
+
+We implement the four proof predicates from Section~\ref{sec:proof-predicates} as arithmetic circuits compiled to Rank-1 Constraint Systems (R1CS) for Groth16.
+
+\textbf{Hash function selection.}
+A key design decision is the choice of hash function $H$.
+On-chain, GoQuorum natively uses Keccak-256 (via the Solidity \texttt{keccak256} built-in), while in-circuit hashing must be efficient in R1CS.
+Keccak-256 requires approximately 150{,}000 R1CS constraints per hash invocation, making it prohibitively expensive for proof generation on edge hardware.
+We adopt a \emph{two-hash architecture}:
+\begin{itemize}
+    \item \textbf{In-circuit:} We use Poseidon~\cite{poseidon_hash}, a SNARK-friendly hash function designed for efficient arithmetization, requiring approximately 300 R1CS constraints per compression call (arity-4, $\alpha=5$, 8 full and 57 partial rounds) on BN254.
+    \item \textbf{On-chain:} Artifact commitments stored in the registry use Poseidon as well, computed via a Poseidon library contract deployed on the GoQuorum network. This avoids the need to prove equivalence between a Keccak-256 digest (on-chain) and a Poseidon digest (in-circuit).
+\end{itemize}
+By deploying Poseidon as an on-chain Solidity library on the consortium chain (feasible because GoQuorum is permissioned and gas pricing is not a constraint; see below), we ensure that $H$ is the same function both on-chain and in-circuit, preserving the commitment binding property from Section~\ref{sec:fw-bundling}.
+A native precompile (compiled into the GoQuorum binary) would reduce gas cost further but requires source-level client modification; we use a Solidity implementation for the proof-of-concept and note that a precompile is a straightforward production optimization for consortium operators who control the node binaries.
+
+\textbf{Circuit specifications.}
+Table~\ref{tab:circuits} summarizes the circuit complexity for each predicate.
+
+\begin{table}[t]
+\centering
+\caption{ZK circuit specifications per predicate (approximate).}
+\label{tab:circuits}
+\begin{tabular}{lrrl}
+\toprule
+\textbf{Predicate} & \textbf{Constraints} & \textbf{Public Inputs} & \textbf{Key Witness} \\
+\midrule
+Schema compliance & $\sim$50K & $c_i^{v}, S$ & $a_i^{v}$ \\
+Version validity & $\sim$80K & $c_i^{v}, c_i^{v+1}$ & $a_i^{v}, a_i^{v+1}, \Delta$ \\
+Authorized origin & $\sim$30K & $c_i^{v}, \mathsf{root}_S, \mathsf{root}_T$ & $S_i, T, \mathsf{paths}$ \\
+Derivation lineage & $\sim$60K & $c_i^{v}, c_j^{v'}, \tau$ & $a_i^{v}, a_j^{v'}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The schema compliance circuit validates bounded-depth structural constraints: the artifact contains required element types, satisfies cardinality bounds, and conforms to type constraints defined by the schema $S$.
+Full XSD or JSON Schema validation is not arithmetized; instead, we define a schema compliance language restricted to attribute presence checks, type assertions, and bounded-depth graph traversals over the artifact's serialized representation.
+This scoping ensures circuit feasibility on edge hardware while covering the most common compliance checks in DME workflows.
+The current circuit design supports artifacts up to 256 field elements (approximately 8~KB serialized), requiring $\sim$64 Poseidon compression calls for hashing.
+Artifacts exceeding this bound are partitioned into sub-artifacts, each committed and proved independently; compositional strategies are discussed in Section~\ref{sec:discussion}.
+
+\textbf{Trusted setup.}
+Each predicate circuit requires a separate Groth16 trusted setup, producing a per-circuit proving key $\mathsf{pk}_k$ and verification key $\mathsf{vk}_k$.
+For the proof-of-concept, we perform the setup on the development machine using a single-party ceremony.
+In a production deployment, a multi-party computation (MPC) ceremony with one party per consortium stakeholder is recommended, as discussed in Section~\ref{sec:scope}.
+
+\subsection{Smart Contract Layer}
+\label{sec:arch-contracts}
+
+Three Solidity smart contracts implement the on-chain anchoring described in Section~\ref{sec:fw-anchoring}:
+
+\textbf{CommitmentRegistry.sol.}
+Maintains a mapping \texttt{mapping(bytes32 => mapping(uint256 => CommitEntry))} where the outer key is the artifact identifier (hashed) and the inner key is the version number.
+Each \texttt{CommitEntry} stores the Poseidon commitment $c_i^{v}$, the committer's Ethereum address, and the block timestamp.
+The \texttt{commit()} function enforces access control: \texttt{msg.sender} must be in the artifact's authorized stakeholder set, managed via a separate access control list (ACL) that the consortium governance contract can update.
+
+\textbf{VerificationKeyRegistry.sol.}
+Stores the verification keys for each predicate circuit.
+Keys are set during deployment and are immutable thereafter; a \texttt{rotateKey()} function exists for post-ceremony key updates but requires multi-signature approval (3-of-4 in our testbed, configurable per consortium).
+
+\textbf{PassportVerifier.sol.}
+A stateless verifier contract that accepts a proof bundle $\boldsymbol{\pi}$ and public inputs, retrieves the corresponding verification keys from the registry, and executes the Groth16 verification equation for each predicate.
+On-chain verification uses the BN254 precompiled contracts available on Ethereum-compatible chains (\texttt{ecAdd}, \texttt{ecMul}, \texttt{ecPairing} at addresses 0x06--0x08).
+The contract enforces public input consistency (all sub-proofs share the same $c_i^{v}$) before executing verification.
+
+Gas costs for on-chain operations are reported in Section~\ref{sec:evaluation}.
+Note that GoQuorum operates with zero gas price by default; gas serves as a computational complexity metric rather than an economic cost.
+Where we report dollar-equivalent costs, these are hypothetical mainnet-equivalent figures for comparison with public-chain deployments.
+
+\subsection{DME Platform Integration}
+\label{sec:arch-dme}
+
+The system integrates with Kompozition, a production Model-Based Systems Engineering (MBSE) platform, via its REST API.
+The integration follows a non-invasive adapter pattern: the ZK proof layer connects to Kompozition as an external consumer, requiring no modifications to the DME platform itself.
+
+The integration supports the following workflow:
+\begin{enumerate}
+    \item \textbf{Artifact export.} When a stakeholder finalizes an artifact version in Kompozition, the adapter retrieves the artifact content and metadata via the Kompozition API.
+    \item \textbf{Serialization.} The artifact (typically a SysML package or scoped set of model elements) is serialized to a canonical JSON representation following RFC~8785 (JSON Canonicalization Scheme) to ensure deterministic hashing. Canonical serialization removes formatting variations that would produce different hashes for semantically identical models.
+    \item \textbf{Commitment and proof.} The canonical JSON byte stream is packed into BN254 scalar field elements at 31 bytes per element (big-endian, zero-padded) and hashed with Poseidon in sponge mode. The resulting commitment is recorded on-chain, and the serialized artifact is passed to the ZK proof layer for predicate proving.
+    \item \textbf{Passport assembly.} The resulting proofs and on-chain anchor are assembled into an assurance passport (W3C VC JSON-LD format) and stored in the stakeholder's credential wallet.
+\end{enumerate}
+
+The adapter architecture localizes vendor-specific logic to the export and serialization components.
+Replacing Kompozition with another DME platform (e.g., Cameo Systems Modeler with Teamwork Cloud) requires reimplementing these components, including the mapping from the platform's native metamodel to the canonical JSON schema.
+The ZK proof layer, blockchain layer, and credential layer are platform-agnostic.
+Cross-platform commitment interoperability---ensuring that the same logical model produces an identical hash regardless of source platform---depends on a shared canonical metamodel specification, which we identify as a prerequisite for multi-vendor deployments.
