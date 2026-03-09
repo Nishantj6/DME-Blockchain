@@ -69,7 +69,7 @@ A PBFT-inspired protocol where a designated proposer broadcasts a block and vali
 IBFT tolerates up to $f = \lfloor (n-1)/3 \rfloor$ Byzantine faults among $n$ validators and provides immediate transaction finality.
 
 \textbf{QBFT.}
-An optimized variant of IBFT that reduces message complexity and improves performance under normal (non-Byzantine) conditions while maintaining the same fault tolerance bound.
+A refined variant of IBFT with improved liveness guarantees and a formally verified specification, while maintaining the same fault tolerance bound.
 QBFT is the recommended BFT protocol for GoQuorum production deployments.
 
 \textbf{Raft.}
@@ -103,7 +103,7 @@ When combined with zero-knowledge proofs, the credential's proof field enables \
 \label{sec:prelim-dme}
 
 Digital Mission Engineering (DME) is the application of digital engineering principles to mission-level analysis and decision-making~\cite{dod_de_strategy, dod_me_guide2023}.
-In a DME ecosystem, stakeholders use Model-Based Systems Engineering (MBSE) tools to create, maintain, and share engineering artifacts---including system architecture models (e.g., SysML, UAF), simulation configurations, requirements documents, and trade study results.
+In a DME ecosystem, stakeholders use Model-Based Systems Engineering (MBSE) tools to create, maintain, and share engineering artifacts---including system architecture models (e.g., SysML, Unified Architecture Framework (UAF)), simulation configurations, requirements documents, and trade study results.
 
 The \emph{Authoritative Source of Truth} (ASOT) is a governed repository that serves as the single reference point for the current state of all engineering artifacts.
 In multi-stakeholder environments, maintaining ASOT integrity requires:
@@ -115,4 +115,6 @@ In multi-stakeholder environments, maintaining ASOT integrity requires:
     \item \textbf{Interoperability}: supporting diverse toolchains across organizational boundaries.
 \end{itemize}
 
+In practice, many DME programs operate with a \emph{federated} ASOT: each stakeholder maintains their own authoritative source, and the system-level ASOT is a governed aggregation.
+The on-chain commitment architecture described in this paper naturally supports both centralized and federated ASOT models, as each stakeholder commits independently and the blockchain serves as the federation layer.
 Current ASOT implementations address these requirements through centralized governance and access control policies, but do not provide cryptographic guarantees---the gap our framework addresses.

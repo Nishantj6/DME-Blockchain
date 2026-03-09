@@ -18,18 +18,18 @@ Meanwhile, zero-knowledge proof (ZKP) systems have demonstrated the ability to a
 However, ZKP systems alone lack the immutability and decentralized consensus that blockchain provides.
 No existing work, to our knowledge, combines ZKPs with blockchain for privacy-preserving provenance of \emph{engineering} artifacts---a domain where the data structures are significantly more complex than flat byte sequences or simple transactions, involving typed multi-relational graphs and cross-layer semantic dependencies.
 
-In this paper, we propose the \emph{Assurance Passport}, a verifiable credential (VC) profile that combines consortium blockchain with zero-knowledge proofs to establish a vendor-neutral, privacy-preserving trust layer for DME.
-An assurance passport is a W3C-aligned credential~\cite{w3c_vc} that attests to properties of an engineering artifact---schema compliance, version validity, authorized provenance, and derivation lineage---without disclosing the artifact's proprietary content.
+In this paper, we propose the \emph{assurance passport}, a verifiable credential (VC) profile that combines consortium blockchain with zero-knowledge proofs to establish a vendor-neutral, privacy-preserving trust layer for DME.
+An assurance passport is a W3C-aligned credential~\cite{w3c_vc} that attests to properties of an engineering artifact---schema compliance, version validity, authorized origin, and derivation lineage---without disclosing the artifact's proprietary content.
 By anchoring these credentials on a consortium blockchain, we provide immutable temporal integrity (``what existed when'') while ZK proofs enable zero-knowledge predicate attestation (``this artifact satisfies property $P$ without revealing the artifact itself'').
 
 This work extends our prior investigation of on-chain ZK verification for AI model marketplaces~\cite{jagannath2025zksnark}, which established the feasibility of zk-SNARK verification on public blockchains but was limited to AI model performance claims on a public testnet.
-The present work differs in three dimensions: (1)~we target \emph{engineering artifacts} rather than AI models, requiring richer proof predicates over structured data; (2)~we deploy on a \emph{consortium blockchain} (GoQuorum) rather than a public testnet, reflecting the permissioned trust model of DME; and (3)~we evaluate on \emph{edge hardware} (NVIDIA Jetson Nano) to address Denied, Degraded, Intermittent, and Limited (DDIL) operational environments where cloud connectivity cannot be assumed.
+The present work differs in three dimensions: (1)~we target \emph{engineering artifacts} rather than AI models, requiring richer proof predicates over structured data; (2)~we deploy on a \emph{consortium blockchain} (GoQuorum) rather than a public testnet, reflecting the permissioned trust model of DME; and (3)~we evaluate on \emph{edge hardware} (NVIDIA Jetson Nano) to address DDIL operational environments where cloud connectivity cannot be assumed.
 
 Our contributions are as follows:
 \begin{enumerate}
     \item We define the \emph{assurance passport} as a W3C verifiable credential profile for engineering artifact attestation, specifying its schema, proof predicates, and security properties under a multi-stakeholder threat model.
     \item We present a vendor-neutral system architecture integrating GoQuorum consortium blockchain, ZK proof generation, and a production DME platform (Kompozition) via API.
-    \item We evaluate a proof-of-concept deployment on edge hardware (four NVIDIA Jetson boards), benchmarking proof generation time, verification latency, gas costs, and throughput across two BFT consensus protocols (IBFT, QBFT) and a CFT baseline (Raft).
+    \item We evaluate a proof-of-concept deployment on edge hardware (four NVIDIA Jetson Nano boards), benchmarking proof generation time, verification latency, gas costs, and throughput across two BFT consensus protocols (IBFT, QBFT) and a CFT baseline (Raft).
 \end{enumerate}
 
 The remainder of this paper is organized as follows.

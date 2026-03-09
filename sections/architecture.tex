@@ -57,7 +57,7 @@ Keccak-256 requires approximately 150{,}000 R1CS constraints per hash invocation
 We adopt a \emph{two-hash architecture}:
 \begin{itemize}
     \item \textbf{In-circuit:} We use Poseidon~\cite{poseidon_hash}, a SNARK-friendly hash function designed for efficient arithmetization, requiring approximately 300 R1CS constraints per compression call (arity-4, $\alpha=5$, 8 full and 57 partial rounds) on BN254.
-    This parameterization targets 128-bit collision resistance with a safety margin of approximately $2\times$ over the best known algebraic attacks.
+    This parameterization targets approximately 128-bit collision resistance with a safety margin of approximately $2\times$ over the best known algebraic attacks.
     The sponge operates with rate $r=4$ and capacity $c=1$ field elements.
     \item \textbf{On-chain:} Artifact commitments stored in the registry use Poseidon as well, computed via a Poseidon library contract deployed on the GoQuorum network. This avoids the need to prove equivalence between a Keccak-256 digest (on-chain) and a Poseidon digest (in-circuit).
 \end{itemize}
@@ -112,6 +112,8 @@ Keys are set during deployment and are immutable thereafter; a \texttt{rotateKey
 A stateless verifier contract that accepts a proof bundle $\boldsymbol{\pi}$ and public inputs, retrieves the corresponding verification keys from the registry, and executes the Groth16 verification equation for each predicate.
 On-chain verification uses the BN254 precompiled contracts available on Ethereum-compatible chains (\texttt{ecAdd}, \texttt{ecMul}, \texttt{ecPairing} at addresses 0x06--0x08).
 The contract enforces public input consistency (all sub-proofs share the same $c_i^{v}$) before executing verification.
+
+All registry contracts use public (shared) state; GoQuorum's private transaction manager (Tessera) is not used because the ZK proof layer itself provides the privacy guarantees---commitments are non-hiding hashes, and the artifact content never appears on-chain.
 
 Gas costs for on-chain operations are reported in Section~\ref{sec:evaluation}.
 Note that GoQuorum operates with zero gas price by default; gas serves as a computational complexity metric rather than an economic cost.

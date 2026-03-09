@@ -93,6 +93,7 @@ Under the post-EIP-1108 gas schedule (Istanbul fork, included in GoQuorum v23.4)
 The actual gas consumed on the testbed will be reported when TBD values are filled; the figures below use the EIP-1108 formula as a reference.
 A standard Groth16 verification uses 4 pairing pairs (proof elements $A, B, C$ plus the public-input accumulator), costing approximately $34{,}000 + 4 \times 45{,}000 = 214{,}000$ gas, plus additional gas for \texttt{ecMul}/\texttt{ecAdd} operations during public-input accumulation.
 For the full bundle with four independent predicate verifications, the pairing cost alone is approximately $4 \times 214{,}000 \approx 856{,}000$ gas.
+An optimized verifier could batch all 16 pairs into a single \texttt{ecPairing} call ($34{,}000 + 16 \times 45{,}000 = 754{,}000$ gas), though this prevents independent verification of individual predicates.
 As noted in Section~\ref{sec:arch-contracts}, GoQuorum operates with zero gas price; these figures represent computational metering, not economic cost.
 For comparison, the equivalent verification on Ethereum mainnet at 30~gwei and \$3{,}000/ETH would cost approximately \$0.02 per single predicate or \$0.08 for the full bundle---modest given the cryptographic guarantees provided.
 

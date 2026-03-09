@@ -59,6 +59,7 @@ Given a common reference string from a trusted setup ceremony (see Section~\ref{
 
     \item \textbf{Version Validity.} The artifact is a valid update of its predecessor according to update rules $R$.
     $R$ is a consortium-configurable set of structural constraints---for example, no deletion of required elements, monotonic version counter, and preservation of interface signatures.
+    In the current design, $R$ is hardcoded into the circuit; different rule sets require separate circuits and trusted setups.
     Public input: commitments $c_i^{v}, c_i^{v+1}$. Witness: both artifact versions and the delta $\Delta$.
     \begin{equation}
     \label{eq:version}
@@ -95,6 +96,7 @@ We assume that (1)~the consortium blockchain operates under an honest-supermajor
 In a multi-stakeholder consortium, the trusted setup is a non-trivial trust point: a compromised common reference string would break soundness for all proof predicates.
 We recommend a multi-party computation (MPC) ceremony, as used in Zcash and other deployed systems, to distribute trust across participants.
 Key management and revocation are orthogonal concerns addressed by standard PKI infrastructure.
+We additionally assume (6)~the DME platform API faithfully exports the artifact content that corresponds to the model state authored by the stakeholder; a compromised or buggy platform that silently alters exports would undermine the commitment chain (see Section~\ref{sec:discussion-limitations}, API projection scope).
 
 \textbf{Collusion bound.}
 The system tolerates up to $\lfloor (n-1)/3 \rfloor$ colluding Byzantine validators under IBFT/QBFT.

@@ -18,6 +18,11 @@ For engineering artifacts with sufficient structural complexity and entropy (e.g
 However, for small or predictable artifacts (e.g., a requirements document with a known template), a hiding commitment of the form $c_i^{v} = H(a_i^{v}, r)$, where $r$ is a random blinding factor included in the witness, would provide computational hiding.
 We consider this an important production hardening step, requiring only a minor circuit modification (the blinding factor $r$ becomes part of the private witness).
 
+\textbf{Concrete security level.}
+BN254 provides approximately 100--110 bits of security following advances in the number field sieve for pairing-friendly curves.
+While sufficient for this proof-of-concept, defense applications typically require 128-bit security.
+Production deployments should migrate to BLS12-381, which provides the full 128-bit margin at the cost of larger proof sizes ($\sim$192 bytes compressed) and slower proof generation.
+
 \textbf{Artifact size bounds.}
 The current circuit design supports artifacts up to 256 field elements (approximately 8~KB serialized).
 While this covers many individual DME work products (requirements packages, interface specifications, trade study summaries), large system-of-systems models can exceed this bound by orders of magnitude.
